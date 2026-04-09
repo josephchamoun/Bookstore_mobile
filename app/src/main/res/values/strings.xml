@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">BookStore</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email Address</string>
+    <string name="password">Password</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="sign_in_subtitle">Sign in to continue your reading journey</string>
+    <string name="no_account">Don\'t have an account?</string>
+    <string name="have_account">Already have an account?</string>
+    <string name="catalog">Catalog</string>
+    <string name="cart">Cart</string>
+    <string name="orders">Orders</string>
+    <string name="add_to_cart">Add to Cart</string>
+    <string name="place_order">Place Order</string>
+    <string name="search_hint">Search by title or author...</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>

@@ -1,0 +1,41 @@
+package com.example.bookstore.network
+
+import com.example.bookstore.model.*
+import retrofit2.Response
+import retrofit2.http.*
+
+interface ApiService {
+
+    // Auth
+    @POST("api/auth/register.php")
+    suspend fun register(@Body body: Map<String, String>): Response<MessageResponse>
+
+    @POST("api/auth/login.php")
+    suspend fun login(@Body body: Map<String, String>): Response<AuthResponse>
+
+    // Books
+    @GET("api/books/index.php")
+    suspend fun getBooks(
+        @Query("search") search: String? = null,
+        @Query("category_id") categoryId: Int? = null
+    ): Response<BooksResponse>
+
+    @GET("api/books/show.php")
+    suspend fun getBook(@Query("id") bookId: Int): Response<BookResponse>
+
+    // Categories
+    @GET("api/categories/index.php")
+    suspend fun getCategories(): Response<CategoriesResponse>
+
+    // Orders
+    @POST("api/orders/create.php")
+    suspend fun placeOrder(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any>
+    ): Response<PlaceOrderResponse>
+
+    @GET("api/orders/index.php")
+    suspend fun getOrders(
+        @Header("Authorization") token: String
+    ): Response<OrdersResponse>
+}
