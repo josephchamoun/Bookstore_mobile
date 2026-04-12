@@ -16,12 +16,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bookstore.R
 import com.example.bookstore.viewmodel.CartViewModel
-import com.example.bookstore.viewmodel.OrderViewModel
+import com.example.bookstore.viewmodel.OrderState
 
 class CartFragment : Fragment() {
 
-    private val cartViewModel:  CartViewModel  by viewModels()
-    private val orderViewModel: OrderViewModel by viewModels()
+    private val cartViewModel: CartViewModel by viewModels()
     private lateinit var adapter: CartAdapter
 
     override fun onCreateView(
@@ -32,9 +31,9 @@ class CartFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val rvCart       = view.findViewById<RecyclerView>(R.id.rvCart)
-        val tvTotal      = view.findViewById<TextView>(R.id.tvTotal)
-        val tvItemCount  = view.findViewById<TextView>(R.id.tvItemCount)
+        val rvCart        = view.findViewById<RecyclerView>(R.id.rvCart)
+        val tvTotal       = view.findViewById<TextView>(R.id.tvTotal)
+        val tvItemCount   = view.findViewById<TextView>(R.id.tvItemCount)
         val btnPlaceOrder = view.findViewById<Button>(R.id.btnPlaceOrder)
         val btnClearCart  = view.findViewById<ImageButton>(R.id.btnClearCart)
 
@@ -55,6 +54,33 @@ class CartFragment : Fragment() {
             tvTotal.text = "$${"%.2f".format(total)}"
         }
 
+        cartViewModel.orderState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                is OrderState.Success -> {
+                    Toast.makeText(
+                        requireContext(),
+                        "Order placed successfully!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                is OrderState.SavedOffline -> {
+                    Toast.makeText(
+                        requireContext(),
+                        "You're offline — order saved and will sync when connected",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                is OrderState.Error -> {
+                    Toast.makeText(
+                        requireContext(),
+                        state.message,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                else -> Unit
+            }
+        }
+
         btnClearCart.setOnClickListener {
             cartViewModel.clearCart()
         }
@@ -66,16 +92,6 @@ class CartFragment : Fragment() {
                 return@setOnClickListener
             }
             showAddressDialog()
-        }
-
-        orderViewModel.orderState.observe(viewLifecycleOwner) { result ->
-            result.onSuccess { msg ->
-                Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
-                cartViewModel.clearCart()
-            }
-            result.onFailure {
-                Toast.makeText(requireContext(), "Order failed. Try again.", Toast.LENGTH_SHORT).show()
-            }
         }
 
         cartViewModel.loadCart()
@@ -92,10 +108,13 @@ class CartFragment : Fragment() {
             .setPositiveButton("Place Order") { _, _ ->
                 val address = input.text.toString().trim()
                 if (address.isEmpty()) {
-                    Toast.makeText(requireContext(), "Please enter an address", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "Please enter an address",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    val items = cartViewModel.cartItems.value ?: emptyList()
-                    orderViewModel.placeOrder(items, address)
+                    cartViewModel.placeOrder(address)
                 }
             }
             .setNegativeButton("Cancel", null)

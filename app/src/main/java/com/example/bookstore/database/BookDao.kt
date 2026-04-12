@@ -1,12 +1,13 @@
 package com.example.bookstore.database
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
 
     @Query("SELECT * FROM books_cache ORDER BY title")
-    suspend fun getAllBooks(): List<BookEntity>
+    fun getAllBooks(): Flow<List<BookEntity>>
 
     @Query("SELECT * FROM books_cache WHERE bookId = :id")
     suspend fun getBookById(id: Int): BookEntity?
@@ -20,6 +21,13 @@ interface BookDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(books: List<BookEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(books: List<BookEntity>)
+
     @Query("DELETE FROM books_cache")
     suspend fun clearAll()
+
+
+    @Query("DELETE FROM books_cache WHERE bookId NOT IN (:ids)")
+    suspend fun deleteAbsent(ids: List<Int>)
 }

@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         BookEntity::class,
         CategoryEntity::class,
         CartEntity::class,
-        OrderEntity::class
+        OrderEntity::class,
+        PendingOrderEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,6 +22,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun cartDao(): CartDao
     abstract fun orderDao(): OrderDao
+
+    abstract fun pendingOrderDao(): PendingOrderDao
+
 
     companion object {
         @Volatile
@@ -32,7 +36,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "bookstore_db"
-                ).build().also { INSTANCE = it }
+                ).fallbackToDestructiveMigration() // 👈 ADD THIS
+
+                    .build().also { INSTANCE = it }
             }
         }
     }

@@ -1,49 +1,62 @@
 package com.example.bookstore.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.example.bookstore.database.AppDatabase
 import com.example.bookstore.model.Book
 import com.example.bookstore.model.Category
+import com.example.bookstore.network.RetrofitClient
 import com.example.bookstore.repository.BookRepository
 import kotlinx.coroutines.launch
 
 class BookViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = BookRepository(application)
+    private val repository = BookRepository(
+        bookDao = AppDatabase.getInstance(application).bookDao(),
+        catDao  = AppDatabase.getInstance(application).categoryDao(),
+        api     = RetrofitClient.instance
+    )
 
-    private val _books      = MutableLiveData<List<Book>>()
-    val books: LiveData<List<Book>> = _books
+    // ── Reactive streams (auto-update when DB changes) ────────────────────
+
+    val books: LiveData<List<Book>> = repository.getBooks().asLiveData()
+
+    val categories: LiveData<List<Category>> = repository.getCategories().asLiveData()
+
+    // ── One-off state ─────────────────────────────────────────────────────
 
     private val _selectedBook = MutableLiveData<Book?>()
     val selectedBook: LiveData<Book?> = _selectedBook
 
-    private val _categories  = MutableLiveData<List<Category>>()
-    val categories: LiveData<List<Category>> = _categories
-
-    private val _isLoading   = MutableLiveData<Boolean>()
+    private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _error       = MutableLiveData<String?>()
+    private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    fun loadBooks(search: String? = null, categoryId: Int? = null) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            val result = repository.getBooks(search, categoryId)
-            _books.value = result
-            _isLoading.value = false
-        }
-    }
+    // ── Actions ───────────────────────────────────────────────────────────
 
-    fun refreshBooks() {
+    // Called by SwipeRefresh — triggers network fetch, which upserts into
+    // Room, which makes the Flow above re-emit automatically
+    fun refresh() {
         viewModelScope.launch {
+            Log.d("BookViewModel", "refresh started")
             _isLoading.value = true
-            val result = repository.refreshBooks()
-            _books.value = result
-            _isLoading.value = false
+            try {
+                repository.refreshBooksFromNetwork()
+                repository.refreshCategoriesFromNetwork()
+                Log.d("BookViewModel", "refresh done")
+            } catch (e: Exception) {
+                Log.e("BookViewModel", "refresh error: ${e.message}", e)
+                _error.value = "Failed to refresh: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
@@ -55,17 +68,24 @@ class BookViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadCategories() {
+    // Search and category filter — read directly from local DB (instant, no network)
+    fun searchBooks(query: String): LiveData<List<Book>> {
+        val result = MutableLiveData<List<Book>>()
         viewModelScope.launch {
-            val result = repository.getCategories()
-            _categories.value = result
+            result.value = repository.getBooksBySearch(query)
         }
+        return result
     }
 
-    fun refreshCategories() {
+    fun filterByCategory(categoryId: Int): LiveData<List<Book>> {
+        val result = MutableLiveData<List<Book>>()
         viewModelScope.launch {
-            val result = repository.refreshCategories()
-            _categories.value = result
+            result.value = repository.getBooksByCategory(categoryId)
         }
+        return result
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }

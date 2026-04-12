@@ -33,4 +33,6 @@ class SessionManager(context: Context) {
     fun clearSession() = prefs.edit().clear().apply()
 
     fun getBearerToken(): String = "Bearer ${getToken()}"
+
+    fun logout() = prefs.edit().clear().apply()
 }

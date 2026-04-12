@@ -76,4 +76,5 @@ dependencies {
 
 // Activity KTX — needed for viewModels() in Activities
     implementation("androidx.activity:activity-ktx:1.8.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

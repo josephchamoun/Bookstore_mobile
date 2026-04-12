@@ -23,6 +23,11 @@ class OrdersFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View = inflater.inflate(R.layout.fragment_orders, container, false)
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshOrders()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -46,7 +51,5 @@ class OrdersFragment : Fragment() {
         swipeRefresh.setOnRefreshListener {
             viewModel.refreshOrders()
         }
-
-        viewModel.loadOrders()
     }
 }
