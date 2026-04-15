@@ -23,6 +23,11 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
     private val pendingOrderDao = AppDatabase.getInstance(context).pendingOrderDao()
     private val gson            = Gson()
 
+    private data class PendingOrderItem(
+        val book_id: Int,
+        val quantity: Int
+    )
+
     // ── Reactive orders stream (replaces the one-shot getOrders) ──────────
 
     fun observeOrders(): Flow<List<Order>> =
@@ -88,26 +93,35 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
             PendingOrderEntity(
                 shippingAddress = shippingAddress,
                 totalAmount     = total,
-                itemsJson       = gson.toJson(cartItems.map {
-                    mapOf("book_id" to it.bookId, "quantity" to it.quantity)
-                })
+                itemsJson       = gson.toJson(
+                    cartItems.map { PendingOrderItem(book_id = it.bookId, quantity = it.quantity) }
+                )
             )
         )
     }
 
     // Called by OrderSyncWorker for each pending row
     suspend fun submitPendingOrder(pending: PendingOrderEntity) {
-        val type = object : com.google.gson.reflect.TypeToken<List<Map<String, Any>>>() {}.type
-        val items: List<Map<String, Any>> = gson.fromJson(pending.itemsJson, type)
+        val type = object : com.google.gson.reflect.TypeToken<List<PendingOrderItem>>() {}.type
+        val items: List<PendingOrderItem> = gson.fromJson(pending.itemsJson, type)
 
         val body = mapOf(
             "shipping_address" to pending.shippingAddress,
-            "items" to items
+            "items" to items.map {
+                mapOf(
+                    "book_id" to it.book_id,
+                    "quantity" to it.quantity
+                )
+            }
         )
         val response = api.placeOrder(sessionManager.getBearerToken(), body)
         if (!response.isSuccessful) {
             throw Exception("Sync failed: ${response.code()}")
         }
+    }
+
+    suspend fun syncOrdersCache() {
+        fetchAndCacheOrders()
     }
 
     // ── Mappers ───────────────────────────────────────────────────────────

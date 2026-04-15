@@ -26,15 +26,25 @@ class OrderSyncWorker(
         if (pending.isEmpty()) return Result.success()
 
         var anyFailed = false
+        var anySynced = false
 
         for (order in pending) {
             try {
                 orderRepository.submitPendingOrder(order)
                 pendingOrderDao.delete(order)
+                anySynced = true
             } catch (e: Exception) {
                 e.printStackTrace()
                 pendingOrderDao.incrementRetry(order.localId)
                 anyFailed = true
+            }
+        }
+
+        if (anySynced) {
+            try {
+                orderRepository.syncOrdersCache()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 

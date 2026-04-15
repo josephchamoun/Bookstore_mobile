@@ -11,7 +11,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bookstore.R
@@ -20,7 +20,7 @@ import com.example.bookstore.viewmodel.OrderState
 
 class CartFragment : Fragment() {
 
-    private val cartViewModel: CartViewModel by viewModels()
+    private val cartViewModel: CartViewModel by activityViewModels()
     private lateinit var adapter: CartAdapter
 
     override fun onCreateView(
