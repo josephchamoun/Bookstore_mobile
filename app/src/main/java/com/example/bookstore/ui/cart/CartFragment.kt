@@ -101,6 +101,7 @@ class CartFragment : Fragment() {
         val input = EditText(requireContext()).apply {
             hint = "Enter shipping address"
             setPadding(40, 20, 40, 20)
+            setText(cartViewModel.getSavedAddress())
         }
         AlertDialog.Builder(requireContext())
             .setTitle("Shipping Address")

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.work.*
 import com.example.bookstore.database.AppDatabase
 import com.example.bookstore.network.RetrofitClient
+import com.example.bookstore.network.RetrofitClient.appContext
+import com.example.bookstore.network.SessionManager
 import com.example.bookstore.repository.BookRepository
 import java.util.concurrent.TimeUnit
 
@@ -16,7 +18,9 @@ class BookSyncWorker(
     private val bookRepository = BookRepository(
         bookDao = db.bookDao(),
         catDao  = db.categoryDao(),
-        api     = RetrofitClient.instance
+        favoriteDao = db.favoriteBookDao(),
+        api     = RetrofitClient.instance,
+        session = SessionManager(appContext)
     )
 
     override suspend fun doWork(): Result {

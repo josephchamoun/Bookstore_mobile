@@ -18,6 +18,9 @@ interface OrderDao {
     @Query("DELETE FROM orders_cache WHERE orderId NOT IN (:ids)")
     suspend fun deleteAbsent(ids: List<Int>)
 
+    @Query("UPDATE orders_cache SET status = :status WHERE orderId = :orderId")
+    suspend fun updateStatus(orderId: Int, status: String)
+
     @Query("DELETE FROM orders_cache")
     suspend fun clearAll()
 }

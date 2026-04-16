@@ -2,46 +2,64 @@ package com.example.bookstore.repository
 
 import android.util.Log
 import com.example.bookstore.database.BookDao
-import com.example.bookstore.database.CategoryDao
 import com.example.bookstore.database.BookEntity
+import com.example.bookstore.database.CategoryDao
 import com.example.bookstore.database.CategoryEntity
+import com.example.bookstore.database.FavoriteBookDao
+import com.example.bookstore.database.FavoriteBookEntity
 import com.example.bookstore.model.Book
 import com.example.bookstore.model.Category
 import com.example.bookstore.network.ApiService
+import com.example.bookstore.network.SessionManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 
 class BookRepository(
     private val bookDao: BookDao,
     private val catDao: CategoryDao,
-    private val api: ApiService
+    private val favoriteDao: FavoriteBookDao,
+    private val api: ApiService,
+    private val session: SessionManager
 ) {
 
-    // ───────────────────────────────
-    // 📚 BOOKS (UI LAYER - REACTIVE)
-    // ───────────────────────────────
-
-    fun getBooks(): Flow<List<Book>> =
-        bookDao.getAllBooks().map { entities ->
-            entities.map { it.toBook() }
+    fun getBooks(): Flow<List<Book>> {
+        val userId = session.getUserId()
+        return combine(bookDao.getAllBooks(), favoriteDao.observeFavoriteIds(userId)) { entities, favoriteIds ->
+            val favoriteSet = favoriteIds.toSet()
+            entities.map { it.toBook(isFavorite = it.bookId in favoriteSet) }
         }
-
-    suspend fun getBooksBySearch(search: String): List<Book> {
-        return bookDao.searchBooks(search).map { it.toBook() }
     }
 
-    suspend fun getBooksByCategory(categoryId: Int): List<Book> {
-        return bookDao.getBooksByCategory(categoryId).map { it.toBook() }
+    fun getFavoriteBooks(): Flow<List<Book>> {
+        val userId = session.getUserId()
+        return combine(bookDao.getAllBooks(), favoriteDao.observeFavoriteIds(userId)) { entities, favoriteIds ->
+            val favoriteSet = favoriteIds.toSet()
+            entities
+                .filter { it.bookId in favoriteSet }
+                .map { it.toBook(isFavorite = true) }
+                .sortedBy { it.title.lowercase() }
+        }
+    }
+
+    suspend fun toggleFavorite(bookId: Int): Boolean {
+        val userId = session.getUserId()
+        val currentlyFavorite = favoriteDao.isFavorite(userId, bookId)
+        if (currentlyFavorite) {
+            favoriteDao.delete(userId, bookId)
+        } else {
+            favoriteDao.insert(FavoriteBookEntity(userId = userId, bookId = bookId))
+        }
+        return !currentlyFavorite
     }
 
     suspend fun getBookById(id: Int): Book? {
-        return bookDao.getBookById(id)?.toBook()
+        val userId = session.getUserId()
+        val isFavorite = favoriteDao.isFavorite(userId, id)
+        return bookDao.getBookById(id)?.toBook(isFavorite = isFavorite)
     }
-
-    // ───────────────────────────────
-    // 👷 WORKER ONLY (SYNC NETWORK)
-    // ───────────────────────────────
 
     suspend fun refreshBooksFromNetwork() {
         try {
@@ -52,13 +70,8 @@ class BookRepository(
                 val books = response.body()?.books ?: return
                 val now = Instant.now().toString()
                 val freshIds = books.map { it.bookId }.toSet()
-
-                // Upsert all fresh books
                 bookDao.upsertAll(books.map { it.toEntity(now) })
-
-                // Delete any local books that no longer exist on the server
                 bookDao.deleteAbsent(freshIds.toList())
-
                 Log.d("BookRepo", "upserted ${books.size} books")
             }
         } catch (e: Exception) {
@@ -72,7 +85,6 @@ class BookRepository(
             if (response.isSuccessful) {
                 val cats = response.body()?.categories ?: return
                 val now = Instant.now().toString()
-                // insertAll already has OnConflictStrategy.REPLACE so this is an upsert
                 catDao.insertAll(
                     cats.map {
                         CategoryEntity(
@@ -88,20 +100,20 @@ class BookRepository(
         }
     }
 
-    // ───────────────────────────────
-    // 📦 CATEGORIES
-    // ───────────────────────────────
-
     fun getCategories(): Flow<List<Category>> =
         catDao.getAllCategories().map { entities ->
             entities.map { it.toCategory() }
         }
 
-    // ───────────────────────────────
-    // 🔁 MAPPERS
-    // ───────────────────────────────
+    suspend fun isFavorite(bookId: Int): Boolean {
+        return favoriteDao.isFavorite(session.getUserId(), bookId)
+    }
 
-    private fun BookEntity.toBook() = Book(
+    suspend fun getFavoriteCount(): Int {
+        return favoriteDao.observeFavoriteIds(session.getUserId()).first().size
+    }
+
+    private fun BookEntity.toBook(isFavorite: Boolean) = Book(
         bookId = bookId,
         categoryId = categoryId,
         title = title,
@@ -109,7 +121,8 @@ class BookRepository(
         price = price,
         stock = stock,
         coverUrl = coverUrl,
-        categoryName = categoryName
+        categoryName = categoryName,
+        isFavorite = isFavorite
     )
 
     private fun Book.toEntity(cachedAt: String) = BookEntity(

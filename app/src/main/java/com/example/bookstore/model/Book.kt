@@ -10,5 +10,6 @@ data class Book(
     @SerializedName("b_price")     val price: Double,
     @SerializedName("b_stock")     val stock: Int,
     @SerializedName("b_cover_url") val coverUrl: String?,
-    @SerializedName("c_name")      val categoryName: String?
+    @SerializedName("c_name")      val categoryName: String?,
+    val isFavorite: Boolean = false
 )

@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
@@ -11,24 +12,33 @@ import com.example.bookstore.database.AppDatabase
 import com.example.bookstore.model.Book
 import com.example.bookstore.model.Category
 import com.example.bookstore.network.RetrofitClient
+import com.example.bookstore.network.SessionManager
 import com.example.bookstore.repository.BookRepository
 import kotlinx.coroutines.launch
+
+enum class BookSortOption(val label: String) {
+    NEWEST("Newest"),
+    PRICE_LOW_HIGH("Price: Low to High"),
+    PRICE_HIGH_LOW("Price: High to Low"),
+    TITLE("Title")
+}
 
 class BookViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = BookRepository(
         bookDao = AppDatabase.getInstance(application).bookDao(),
-        catDao  = AppDatabase.getInstance(application).categoryDao(),
-        api     = RetrofitClient.instance
+        catDao = AppDatabase.getInstance(application).categoryDao(),
+        favoriteDao = AppDatabase.getInstance(application).favoriteBookDao(),
+        api = RetrofitClient.instance,
+        session = SessionManager(application)
     )
 
-    // ── Reactive streams (auto-update when DB changes) ────────────────────
-
-    val books: LiveData<List<Book>> = repository.getBooks().asLiveData()
+    private val sourceBooks = repository.getBooks().asLiveData()
+    private val _books = MediatorLiveData<List<Book>>()
+    val books: LiveData<List<Book>> = _books
 
     val categories: LiveData<List<Category>> = repository.getCategories().asLiveData()
-
-    // ── One-off state ─────────────────────────────────────────────────────
+    val favoriteBooks: LiveData<List<Book>> = repository.getFavoriteBooks().asLiveData()
 
     private val _selectedBook = MutableLiveData<Book?>()
     val selectedBook: LiveData<Book?> = _selectedBook
@@ -39,10 +49,21 @@ class BookViewModel(application: Application) : AndroidViewModel(application) {
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    // ── Actions ───────────────────────────────────────────────────────────
+    private var latestBooks: List<Book> = emptyList()
+    private var searchQuery: String = ""
+    private var selectedCategoryId: Int? = null
+    private var minPrice: Double? = null
+    private var maxPrice: Double? = null
+    private var inStockOnly: Boolean = false
+    private var sortOption: BookSortOption = BookSortOption.NEWEST
 
-    // Called by SwipeRefresh — triggers network fetch, which upserts into
-    // Room, which makes the Flow above re-emit automatically
+    init {
+        _books.addSource(sourceBooks) { books ->
+            latestBooks = books.orEmpty()
+            applyFilters()
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             Log.d("BookViewModel", "refresh started")
@@ -68,24 +89,86 @@ class BookViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Search and category filter — read directly from local DB (instant, no network)
-    fun searchBooks(query: String): LiveData<List<Book>> {
-        val result = MutableLiveData<List<Book>>()
-        viewModelScope.launch {
-            result.value = repository.getBooksBySearch(query)
-        }
-        return result
+    fun updateQuery(query: String) {
+        searchQuery = query.trim()
+        applyFilters()
     }
 
-    fun filterByCategory(categoryId: Int): LiveData<List<Book>> {
-        val result = MutableLiveData<List<Book>>()
+    fun updateCategory(categoryId: Int?) {
+        selectedCategoryId = categoryId
+        applyFilters()
+    }
+
+    fun updatePriceRange(min: String, max: String) {
+        minPrice = min.toDoubleOrNull()
+        maxPrice = max.toDoubleOrNull()
+        applyFilters()
+    }
+
+    fun updateInStockOnly(enabled: Boolean) {
+        inStockOnly = enabled
+        applyFilters()
+    }
+
+    fun updateSortOption(option: BookSortOption) {
+        sortOption = option
+        applyFilters()
+    }
+
+    fun clearFilters() {
+        searchQuery = ""
+        selectedCategoryId = null
+        minPrice = null
+        maxPrice = null
+        inStockOnly = false
+        sortOption = BookSortOption.NEWEST
+        applyFilters()
+    }
+
+    fun toggleFavorite(book: Book) {
         viewModelScope.launch {
-            result.value = repository.getBooksByCategory(categoryId)
+            repository.toggleFavorite(book.bookId)
+            if (_selectedBook.value?.bookId == book.bookId) {
+                _selectedBook.value = repository.getBookById(book.bookId)
+            }
         }
-        return result
     }
 
     fun clearError() {
         _error.value = null
+    }
+
+    private fun applyFilters() {
+        val query = searchQuery.lowercase()
+        val filtered = latestBooks
+            .asSequence()
+            .filter { book ->
+                query.isBlank() ||
+                    book.title.lowercase().contains(query) ||
+                    book.author.lowercase().contains(query)
+            }
+            .filter { book ->
+                selectedCategoryId == null || book.categoryId == selectedCategoryId
+            }
+            .filter { book ->
+                minPrice == null || book.price >= minPrice!!
+            }
+            .filter { book ->
+                maxPrice == null || book.price <= maxPrice!!
+            }
+            .filter { book ->
+                !inStockOnly || book.stock > 0
+            }
+            .toList()
+            .let { books ->
+                when (sortOption) {
+                    BookSortOption.NEWEST -> books.sortedByDescending { it.bookId }
+                    BookSortOption.PRICE_LOW_HIGH -> books.sortedBy { it.price }
+                    BookSortOption.PRICE_HIGH_LOW -> books.sortedByDescending { it.price }
+                    BookSortOption.TITLE -> books.sortedBy { it.title.lowercase() }
+                }
+            }
+
+        _books.value = filtered
     }
 }

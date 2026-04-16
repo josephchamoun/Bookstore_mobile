@@ -51,4 +51,13 @@ class CategoryAdapter(
         override fun areItemsTheSame(a: Category, b: Category) = a.categoryId == b.categoryId
         override fun areContentsTheSame(a: Category, b: Category) = a == b
     }
+
+    fun clearSelection() {
+        val previous = selectedId
+        selectedId = null
+        if (previous != null) {
+            val previousIndex = currentList.indexOfFirst { it.categoryId == previous }
+            if (previousIndex >= 0) notifyItemChanged(previousIndex)
+        }
+    }
 }

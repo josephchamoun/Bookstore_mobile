@@ -1,9 +1,6 @@
 package com.example.bookstore.viewmodel
 
 import android.app.Application
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -26,8 +23,9 @@ sealed class OrderState {
 
 class CartViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val cartRepository  = CartRepository(application)
-    private val orderRepository = OrderRepository(application, SessionManager(application))
+    private val sessionManager = SessionManager(application)
+    private val cartRepository = CartRepository(application)
+    private val orderRepository = OrderRepository(application, sessionManager)
 
     private val _cartItems = MutableLiveData<List<CartEntity>>()
     val cartItems: LiveData<List<CartEntity>> = _cartItems
@@ -44,11 +42,9 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
     private val _orderState = MutableLiveData<OrderState>(OrderState.Idle)
     val orderState: LiveData<OrderState> = _orderState
 
-    // ── Cart actions ──────────────────────────────────────────────────────
-
     fun loadCart() {
         viewModelScope.launch {
-            val items        = cartRepository.getCartItems()
+            val items = cartRepository.getCartItems()
             _cartItems.value = items
             _cartTotal.value = cartRepository.calculateTotal(items)
             _cartCount.value = items.sumOf { it.quantity }
@@ -88,9 +84,9 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun clearMessage() { _message.value = null }
-
-    // ── Order placement with offline fallback ─────────────────────────────
+    fun clearMessage() {
+        _message.value = null
+    }
 
     fun placeOrder(shippingAddress: String) {
         viewModelScope.launch {
@@ -98,27 +94,27 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
             val items = cartRepository.getCartItems()
             Log.d("CartVM", "cart items count: ${items.size}")
             if (items.isEmpty()) return@launch
-            val total = cartRepository.calculateTotal(items)
 
+            val total = cartRepository.calculateTotal(items)
             val result = orderRepository.placeOrder(items, shippingAddress)
 
             when {
                 result.isSuccess -> {
+                    sessionManager.saveAddress(shippingAddress)
                     cartRepository.clearCart()
                     loadCart()
                     _orderState.value = OrderState.Success
                 }
                 result.exceptionOrNull() is java.io.IOException -> {
-                    // IOException = no network / server unreachable → save offline
                     Log.d("CartVM", "server unreachable, saving offline")
                     orderRepository.saveOffline(items, shippingAddress, total)
+                    sessionManager.saveAddress(shippingAddress)
                     cartRepository.clearCart()
                     loadCart()
                     OrderSyncWorker.scheduleNow(getApplication())
                     _orderState.value = OrderState.SavedOffline
                 }
                 else -> {
-                    // Server responded but with an error (4xx, 5xx)
                     _orderState.value = OrderState.Error(
                         result.exceptionOrNull()?.message ?: "Order failed"
                     )
@@ -129,5 +125,5 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
+    fun getSavedAddress(): String = sessionManager.getAddress().orEmpty()
 }

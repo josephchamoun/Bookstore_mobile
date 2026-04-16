@@ -11,9 +11,10 @@ import androidx.room.RoomDatabase
         CategoryEntity::class,
         CartEntity::class,
         OrderEntity::class,
-        PendingOrderEntity::class
+        PendingOrderEntity::class,
+        FavoriteBookEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,9 +23,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun cartDao(): CartDao
     abstract fun orderDao(): OrderDao
-
     abstract fun pendingOrderDao(): PendingOrderDao
-
+    abstract fun favoriteBookDao(): FavoriteBookDao
 
     companion object {
         @Volatile

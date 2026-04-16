@@ -3,6 +3,7 @@ package com.example.bookstore.ui.catalog
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -24,22 +25,26 @@ class BookDetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_book_details)
 
-        val toolbar      = findViewById<Toolbar>(R.id.toolbar)
-        val ivCover      = findViewById<ImageView>(R.id.ivCover)
-        val tvTitle      = findViewById<TextView>(R.id.tvTitle)
-        val tvAuthor     = findViewById<TextView>(R.id.tvAuthor)
-        val tvCategory   = findViewById<TextView>(R.id.tvCategory)
-        val tvStock      = findViewById<TextView>(R.id.tvStock)
-        val tvPrice      = findViewById<TextView>(R.id.tvPrice)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        val ivCover = findViewById<ImageView>(R.id.ivCover)
+        val tvTitle = findViewById<TextView>(R.id.tvTitle)
+        val tvAuthor = findViewById<TextView>(R.id.tvAuthor)
+        val tvCategory = findViewById<TextView>(R.id.tvCategory)
+        val tvStock = findViewById<TextView>(R.id.tvStock)
+        val tvPrice = findViewById<TextView>(R.id.tvPrice)
+        val btnFavorite = findViewById<ImageButton>(R.id.btnFavorite)
         val btnAddToCart = findViewById<Button>(R.id.btnAddToCart)
-        val progressBar  = findViewById<ProgressBar>(R.id.progressBar)
+        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
 
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { finish() }
 
         val bookId = intent.getIntExtra("book_id", -1)
-        if (bookId == -1) { finish(); return }
+        if (bookId == -1) {
+            finish()
+            return
+        }
 
         bookViewModel.loadBookById(bookId)
 
@@ -49,17 +54,24 @@ class BookDetailsActivity : AppCompatActivity() {
 
         bookViewModel.selectedBook.observe(this) { book ->
             if (book == null) return@observe
-            tvTitle.text    = book.title
-            tvAuthor.text   = "by ${book.author}"
+
+            tvTitle.text = book.title
+            tvAuthor.text = "by ${book.author}"
             tvCategory.text = book.categoryName ?: ""
-            tvPrice.text    = "$${book.price}"
-            tvStock.text    = if (book.stock > 0) "✓  In Stock" else "✗  Out of Stock"
+            tvPrice.text = "$${"%.2f".format(book.price)}"
+            tvStock.text = if (book.stock > 0) "In stock: ${book.stock}" else "Out of stock"
+            btnFavorite.setImageResource(
+                if (book.isFavorite) R.drawable.ic_favorite_filled else R.drawable.ic_favorite_outline
+            )
 
             Glide.with(this)
                 .load(book.coverUrl)
                 .placeholder(android.R.drawable.ic_menu_gallery)
                 .into(ivCover)
 
+            btnFavorite.setOnClickListener {
+                bookViewModel.toggleFavorite(book)
+            }
             btnAddToCart.setOnClickListener {
                 cartViewModel.addToCart(book)
             }

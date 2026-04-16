@@ -15,16 +15,31 @@
         android:orientation="vertical"
         android:padding="10dp">
 
-        <!-- Cover Image -->
-        <ImageView
-            android:id="@+id/ivCover"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="180dp"
-            android:scaleType="centerCrop"
-            android:background="@color/surface2"
-            android:contentDescription="Book cover" />
+            android:layout_height="180dp">
 
-        <!-- Category Tag -->
+            <ImageView
+                android:id="@+id/ivCover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/surface2"
+                android:contentDescription="Book cover"
+                android:scaleType="centerCrop" />
+
+            <ImageButton
+                android:id="@+id/btnFavorite"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_icon"
+                android:contentDescription="Toggle favorite"
+                android:padding="6dp"
+                android:src="@drawable/ic_favorite_outline"
+                android:tint="@color/white" />
+        </FrameLayout>
+
         <TextView
             android:id="@+id/tvCategory"
             android:layout_width="wrap_content"
@@ -38,35 +53,40 @@
             android:textColor="@color/white"
             android:textSize="10sp" />
 
-        <!-- Title -->
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:maxLines="2"
             android:textColor="@color/text_primary"
             android:textSize="13sp"
-            android:textStyle="bold"
-            android:maxLines="2"
-            android:ellipsize="end" />
+            android:textStyle="bold" />
 
-        <!-- Author -->
         <TextView
             android:id="@+id/tvAuthor"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
+            android:ellipsize="end"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
-        <!-- Price -->
+        <TextView
+            android:id="@+id/tvStock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp" />
+
         <TextView
             android:id="@+id/tvPrice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:textColor="@color/accent_blue"
             android:textSize="14sp"
             android:textStyle="bold" />

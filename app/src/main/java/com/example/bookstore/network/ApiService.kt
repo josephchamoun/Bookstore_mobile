@@ -38,4 +38,10 @@ interface ApiService {
     suspend fun getOrders(
         @Header("Authorization") token: String
     ): Response<OrdersResponse>
+
+    @POST("api/orders/cancel.php")
+    suspend fun cancelOrder(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any>
+    ): Response<MessageResponse>
 }

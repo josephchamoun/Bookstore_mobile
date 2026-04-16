@@ -124,6 +124,24 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
         fetchAndCacheOrders()
     }
 
+    suspend fun cancelOrder(orderId: Int): Result<String> {
+        return try {
+            val response = api.cancelOrder(
+                sessionManager.getBearerToken(),
+                mapOf("order_id" to orderId)
+            )
+            if (response.isSuccessful) {
+                orderDao.updateStatus(orderId, "cancelled")
+                fetchAndCacheOrders()
+                Result.success(response.body()?.message ?: "Order cancelled")
+            } else {
+                Result.failure(Exception("Cancel failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // ── Mappers ───────────────────────────────────────────────────────────
 
     private fun Order.toEntity(cachedAt: String) = OrderEntity(

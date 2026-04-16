@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -21,12 +22,18 @@ import com.example.bookstore.ui.orders.OrdersFragment
 import com.example.bookstore.ui.profile.ProfileFragment
 import com.example.bookstore.viewmodel.CartViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import com.example.bookstore.worker.OrderSyncWorker
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var sessionManager: SessionManager
     private val cartViewModel: CartViewModel by viewModels()
     private var cartCount: Int = 0
+    private lateinit var connectivityManager: ConnectivityManager
+    private lateinit var networkCallback: ConnectivityManager.NetworkCallback
 
     // Receives the 401 broadcast from RetrofitClient interceptor
     private val unauthorizedReceiver = object : BroadcastReceiver() {
@@ -69,6 +76,24 @@ class MainActivity : AppCompatActivity() {
             }
             true
         }
+        registerNetworkCallback()
+    }
+
+    private fun registerNetworkCallback() {
+        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE)
+                as ConnectivityManager
+
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                OrderSyncWorker.scheduleNow(applicationContext)
+            }
+        }
+
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        connectivityManager.registerNetworkCallback(request, networkCallback)
     }
 
     override fun onResume() {
@@ -134,6 +159,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(unauthorizedReceiver)
+        connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 
     private fun logoutAndRedirect() {

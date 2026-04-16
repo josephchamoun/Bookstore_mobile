@@ -26,6 +26,9 @@ class OrderViewModel(application: Application) : AndroidViewModel(application) {
     private val _orderState = MutableLiveData<Result<String>>()
     val orderState: LiveData<Result<String>> = _orderState
 
+    private val _cancelState = MutableLiveData<Result<String>?>()
+    val cancelState: LiveData<Result<String>?> = _cancelState
+
     // Call once on screen open to populate cache from network
     fun refreshOrders() {
         viewModelScope.launch {
@@ -47,5 +50,17 @@ class OrderViewModel(application: Application) : AndroidViewModel(application) {
             }
             _isLoading.value = false
         }
+    }
+
+    fun cancelOrder(orderId: Int) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _cancelState.value = repository.cancelOrder(orderId)
+            _isLoading.value = false
+        }
+    }
+
+    fun consumeCancelState() {
+        _cancelState.value = null
     }
 }

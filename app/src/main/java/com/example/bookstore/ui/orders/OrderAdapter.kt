@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -33,6 +34,9 @@ class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
         holder.tvDate.text    = order.orderDate
         holder.tvTotal.text   = "$${"%.2f".format(order.total)}"
         holder.tvItems.text   = "${order.items?.size ?: 0} item(s)"
+        holder.tvStatus.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(holder.itemView.context, statusColor(order.status))
+        )
 
 
         holder.itemView.setOnClickListener {
@@ -48,5 +52,14 @@ class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
     companion object DiffCallback : DiffUtil.ItemCallback<Order>() {
         override fun areItemsTheSame(a: Order, b: Order) = a.orderId == b.orderId
         override fun areContentsTheSame(a: Order, b: Order) = a == b
+    }
+
+    private fun statusColor(status: String): Int = when (status.lowercase()) {
+        "pending" -> R.color.accent_blue
+        "processing" -> R.color.success
+        "shipped" -> android.R.color.holo_orange_dark
+        "delivered" -> android.R.color.holo_green_dark
+        "cancelled" -> R.color.error
+        else -> R.color.text_secondary
     }
 }
