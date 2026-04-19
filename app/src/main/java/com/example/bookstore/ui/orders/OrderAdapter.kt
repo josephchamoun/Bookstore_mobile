@@ -19,6 +19,8 @@ class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
         val tvDate:    TextView = view.findViewById(R.id.tvDate)
         val tvTotal:   TextView = view.findViewById(R.id.tvTotal)
         val tvItems:   TextView = view.findViewById(R.id.tvItems)
+
+        val tvPendingSync: TextView = view.findViewById(R.id.tvPendingSync)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -29,17 +31,27 @@ class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val order = getItem(position)
-        holder.tvOrderId.text = "Order #${order.orderId}"
-        holder.tvStatus.text  = order.status.replaceFirstChar { it.uppercase() }
+
+        holder.tvOrderId.text = if (order.isSynced) "Order #${order.orderId}" else "Order #—"
         holder.tvDate.text    = order.orderDate
         holder.tvTotal.text   = "$${"%.2f".format(order.total)}"
         holder.tvItems.text   = "${order.items?.size ?: 0} item(s)"
+
+        holder.tvPendingSync.visibility = if (order.isSynced) View.GONE else View.VISIBLE
+
+        holder.tvStatus.text = if (order.isSynced) {
+            order.status.replaceFirstChar { it.uppercase() }
+        } else {
+            "Pending"
+        }
+
         holder.tvStatus.backgroundTintList = android.content.res.ColorStateList.valueOf(
             ContextCompat.getColor(holder.itemView.context, statusColor(order.status))
         )
 
-
+        // block click on unsynced orders — nothing to show yet
         holder.itemView.setOnClickListener {
+            if (!order.isSynced) return@setOnClickListener
             val intent = android.content.Intent(
                 holder.itemView.context,
                 OrderDetailsActivity::class.java
@@ -55,11 +67,12 @@ class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
     }
 
     private fun statusColor(status: String): Int = when (status.lowercase()) {
-        "pending" -> R.color.accent_blue
-        "processing" -> R.color.success
-        "shipped" -> android.R.color.holo_orange_dark
-        "delivered" -> android.R.color.holo_green_dark
-        "cancelled" -> R.color.error
-        else -> R.color.text_secondary
+        "pending sync" -> R.color.text_secondary
+        "pending"      -> R.color.accent_blue
+        "processing"   -> R.color.success
+        "shipped"      -> android.R.color.holo_orange_dark
+        "delivered"    -> android.R.color.holo_green_dark
+        "cancelled"    -> R.color.error
+        else           -> R.color.text_secondary
     }
 }

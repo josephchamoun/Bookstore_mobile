@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -21,11 +24,9 @@ import com.example.bookstore.ui.catalog.CatalogFragment
 import com.example.bookstore.ui.orders.OrdersFragment
 import com.example.bookstore.ui.profile.ProfileFragment
 import com.example.bookstore.viewmodel.CartViewModel
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import com.example.bookstore.worker.OrderSyncWorker
+import com.example.bookstore.worker.ReviewSyncWorker
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,7 +36,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var networkCallback: ConnectivityManager.NetworkCallback
 
-    // Receives the 401 broadcast from RetrofitClient interceptor
     private val unauthorizedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             logoutAndRedirect()
@@ -45,18 +45,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+
+        // Custom styled title
+        supportActionBar?.title = "📚 BookStore"
+
         sessionManager = SessionManager(this)
 
-        // Register 401 broadcast receiver
-        // Replace the registerReceiver call with this:
         ContextCompat.registerReceiver(
             this,
             unauthorizedReceiver,
             IntentFilter(RetrofitClient.ACTION_UNAUTHORIZED),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
         if (savedInstanceState == null) {
             bottomNav.selectedItemId = R.id.nav_catalog
@@ -76,6 +80,7 @@ class MainActivity : AppCompatActivity() {
             }
             true
         }
+
         registerNetworkCallback()
     }
 
@@ -85,7 +90,9 @@ class MainActivity : AppCompatActivity() {
 
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
+                // Retry both pending orders and pending reviews when network returns
                 OrderSyncWorker.scheduleNow(applicationContext)
+                ReviewSyncWorker.scheduleNow(applicationContext) // ✅ added
             }
         }
 
@@ -101,7 +108,6 @@ class MainActivity : AppCompatActivity() {
         cartViewModel.loadCart()
     }
 
-    // Inflate the toolbar menu with logout item
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
@@ -143,9 +149,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_cart -> {
-                if (cartCount > 0) {
-                    loadFragment(CartFragment())
-                }
+                if (cartCount > 0) loadFragment(CartFragment())
                 true
             }
             R.id.action_logout -> {

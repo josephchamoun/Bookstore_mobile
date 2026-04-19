@@ -89,6 +89,7 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
         shippingAddress: String,
         total: Double
     ) {
+
         pendingOrderDao.insert(
             PendingOrderEntity(
                 shippingAddress = shippingAddress,
@@ -98,7 +99,26 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
                 )
             )
         )
+
+        //insert into orders_cache so it shows up immediately
+        orderDao.insertLocalOrder(
+            OrderEntity(
+                orderId         = -(System.currentTimeMillis() % Int.MAX_VALUE).toInt(), // temp negative ID
+                orderDate       = Instant.now().toString(),
+                total           = total,
+                status          = "pending",
+                shippingAddress = shippingAddress,
+                itemsJson       = gson.toJson(
+                    cartItems.map { OrderItem(0, 0, it.bookId, it.quantity, 0.0, null, null, null) }
+                ),
+                cachedAt        = Instant.now().toString(),
+                isSynced        = false //not on server yet
+            )
+        )
     }
+
+// After successful sync, the real order replaces the temp one via fetchAndCacheOrders()
+// which upserts server orders and deletes absent IDs — temp negative ID gets cleaned up automatically
 
     // Called by OrderSyncWorker for each pending row
     suspend fun submitPendingOrder(pending: PendingOrderEntity) {
@@ -151,7 +171,8 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
         status          = status,
         shippingAddress = shippingAddress,
         itemsJson       = gson.toJson(items),
-        cachedAt        = cachedAt
+        cachedAt        = cachedAt,
+        isSynced        = true
     )
 
     private fun OrderEntity.toOrder() = Order(
@@ -164,6 +185,10 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
         items           = gson.fromJson(
             itemsJson,
             Array<OrderItem>::class.java
-        )?.toList()
+        )?.toList(),
+        isSynced        = isSynced
     )
+
+
+
 }

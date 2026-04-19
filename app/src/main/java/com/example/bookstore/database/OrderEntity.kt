@@ -11,5 +11,6 @@ data class OrderEntity(
     val status: String,
     val shippingAddress: String,
     val itemsJson: String,
-    val cachedAt: String
+    val cachedAt: String,
+    val isSynced: Boolean = true
 )

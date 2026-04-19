@@ -9,7 +9,8 @@ data class Order(
     @SerializedName("o_total")           val total: Double,
     @SerializedName("o_status")          val status: String,
     @SerializedName("o_shipping_address") val shippingAddress: String,
-    @SerializedName("items")             val items: List<OrderItem>?
+    @SerializedName("items")             val items: List<OrderItem>?,
+    val isSynced: Boolean = true
 )
 
 data class OrderItem(

@@ -62,8 +62,18 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show()
                 goToMain()
             }
-            result.onFailure {
-                Toast.makeText(this, "Invalid email or password", Toast.LENGTH_SHORT).show()
+            result.onFailure { error ->
+                val message = error.message ?: ""
+                if (message.startsWith("banned:")) {
+                    val reason = message.removePrefix("banned:")
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Account Banned")
+                        .setMessage(reason)
+                        .setPositiveButton("OK", null)
+                        .show()
+                } else {
+                    Toast.makeText(this, "Invalid email or password", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

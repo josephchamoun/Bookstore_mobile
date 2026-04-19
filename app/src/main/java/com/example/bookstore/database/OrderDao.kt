@@ -10,6 +10,8 @@ interface OrderDao {
     fun getAllOrders(): Flow<List<OrderEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLocalOrder(order: OrderEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(orders: List<OrderEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

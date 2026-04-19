@@ -1,6 +1,7 @@
 package com.example.bookstore.network
 
 import com.example.bookstore.model.*
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -44,4 +45,25 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Response<MessageResponse>
+
+
+
+    // ── Reviews ───────────────────────────────────────────────────────────────────
+
+    @GET("api/reviews/index.php")
+    suspend fun getReviews(
+        @Query("book_id") bookId: Int
+    ): ReviewsResponse
+
+    @POST("api/reviews/create.php")
+    suspend fun submitReview(
+        @Header("Authorization") token: String,
+        @Body body: SubmitReviewRequest
+    ): SubmitReviewResponse
+
+    @GET("api/reviews/check_eligibility.php")
+    suspend fun checkReviewEligibility(
+        @Header("Authorization") token: String,
+        @Query("book_id") bookId: Int
+    ): EligibilityResponse
 }

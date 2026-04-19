@@ -23,6 +23,12 @@ class AuthRepository(private val sessionManager: SessionManager) {
                     )
                 }
                 Result.success(body)
+            } else if (response.code() == 403) {
+
+                val errorBody = response.errorBody()?.string()
+                val json      = com.google.gson.JsonParser.parseString(errorBody).asJsonObject
+                val reason    = json.get("ban_reason")?.asString ?: "You have been banned."
+                Result.failure(Exception("banned:$reason"))
             } else {
                 Result.failure(Exception("Login failed"))
             }
