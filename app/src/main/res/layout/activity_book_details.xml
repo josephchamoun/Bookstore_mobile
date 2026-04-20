@@ -207,6 +207,18 @@
                 android:backgroundTint="@color/surface"
                 android:layout_marginBottom="8dp" />
 
+            <Button
+                android:id="@+id/btnReadEbook"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Read Ebook"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/accent_blue"
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

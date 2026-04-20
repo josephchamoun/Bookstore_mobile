@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.bumptech.glide.Glide
 import com.example.bookstore.R
+import com.example.bookstore.ui.ebook.EbookActivity
 import com.example.bookstore.ui.reviews.ReviewsActivity
 import com.example.bookstore.viewmodel.BookViewModel
 import com.example.bookstore.viewmodel.CartViewModel
@@ -63,6 +64,8 @@ class BookDetailsActivity : AppCompatActivity() {
         bookViewModel.selectedBook.observe(this) { book ->
             if (book == null) return@observe
 
+            android.util.Log.d("EbookDebug", "hasEbook = ${book.hasEbook}")
+
             tvTitle.text    = book.title
             tvAuthor.text   = "by ${book.author}"
             tvCategory.text = book.categoryName ?: ""
@@ -87,6 +90,14 @@ class BookDetailsActivity : AppCompatActivity() {
             btnViewReviews.setOnClickListener {
                 ReviewsActivity.start(this, bookId, book.title)
             }
+
+            val btnReadEbook = findViewById<Button>(R.id.btnReadEbook)
+
+            btnReadEbook.visibility = if (book.hasEbook == 1) View.VISIBLE else View.GONE
+            btnReadEbook.setOnClickListener {
+                EbookActivity.start(this, bookId, book.title)
+            }
+
         }
 
         // ── Reviews rating ────────────────────────────────────────────────────

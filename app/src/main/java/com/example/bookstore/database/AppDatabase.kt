@@ -16,7 +16,7 @@ import androidx.room.RoomDatabase
         ReviewEntity::class,
         PendingReviewEntity::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

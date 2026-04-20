@@ -13,5 +13,6 @@ data class BookEntity(
     val stock: Int,
     val coverUrl: String?,
     val categoryName: String?,
-    val cachedAt: String
+    val cachedAt: String,
+    val hasEbook: Boolean = false
 )

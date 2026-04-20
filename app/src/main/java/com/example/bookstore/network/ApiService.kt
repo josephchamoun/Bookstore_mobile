@@ -66,4 +66,12 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Query("book_id") bookId: Int
     ): EligibilityResponse
+
+
+    // ── Ebook ─────────────────────────────────────────────────────────────────────
+    @GET("api/ebooks/get_pdf.php")
+    suspend fun getPdfUrl(
+        @Header("Authorization") token: String,
+        @Query("book_id") bookId: Int
+    ): PdfUrlResponse
 }

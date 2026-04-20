@@ -16,6 +16,9 @@
         android:theme="@style/Theme.BookStore"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".ui.ebook.EbookActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.reviews.ReviewsActivity"
             android:exported="false" />
         <activity

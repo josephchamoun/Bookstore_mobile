@@ -114,27 +114,29 @@ class BookRepository(
     }
 
     private fun BookEntity.toBook(isFavorite: Boolean) = Book(
-        bookId = bookId,
-        categoryId = categoryId,
-        title = title,
-        author = author,
-        price = price,
-        stock = stock,
-        coverUrl = coverUrl,
+        bookId       = bookId,
+        categoryId   = categoryId,
+        title        = title,
+        author       = author,
+        price        = price,
+        stock        = stock,
+        coverUrl     = coverUrl,
         categoryName = categoryName,
-        isFavorite = isFavorite
+        hasEbook     = if (hasEbook) 1 else 0,
+        isFavorite   = isFavorite
     )
 
     private fun Book.toEntity(cachedAt: String) = BookEntity(
-        bookId = bookId,
-        categoryId = categoryId,
-        title = title,
-        author = author,
-        price = price,
-        stock = stock,
-        coverUrl = coverUrl,
+        bookId       = bookId,
+        categoryId   = categoryId,
+        title        = title,
+        author       = author,
+        price        = price,
+        stock        = stock,
+        coverUrl     = coverUrl,
         categoryName = categoryName,
-        cachedAt = cachedAt
+        cachedAt     = cachedAt,
+        hasEbook     = hasEbook == 1
     )
 
     private fun CategoryEntity.toCategory() = Category(

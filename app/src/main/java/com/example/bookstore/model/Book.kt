@@ -11,5 +11,6 @@ data class Book(
     @SerializedName("b_stock")     val stock: Int,
     @SerializedName("b_cover_url") val coverUrl: String?,
     @SerializedName("c_name")      val categoryName: String?,
+    @SerializedName("has_ebook") val hasEbook: Int = 0,
     val isFavorite: Boolean = false
 )
