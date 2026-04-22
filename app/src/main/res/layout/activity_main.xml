@@ -6,26 +6,51 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <!-- Top toolbar with logo text -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/surface"
         android:elevation="0dp"
-        android:paddingStart="4dp"
+        android:paddingStart="12dp"
         android:paddingEnd="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <!-- Subtle divider under toolbar -->
+        <!-- Custom title: logo + store name -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_midnighttome_logo"
+                android:contentDescription="MidnightTome logo" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="MidnightTome"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.03" />
+
+        </LinearLayout>
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <!-- Divider under toolbar -->
     <View
         android:id="@+id/toolbarDivider"
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:background="@color/surface"
-        android:alpha="0.3"
+        android:background="#1AFFFFFF"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -39,13 +64,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Subtle divider above bottom nav -->
+    <!-- Divider above bottom nav -->
     <View
         android:id="@+id/bottomNavDivider"
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:background="@color/surface"
-        android:alpha="0.3"
+        android:background="#1AFFFFFF"
         app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

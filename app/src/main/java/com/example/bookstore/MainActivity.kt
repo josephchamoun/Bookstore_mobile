@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
 
         // Custom styled title
-        supportActionBar?.title = "📚 BookStore"
+        supportActionBar?.setDisplayShowTitleEnabled(false)
 
         sessionManager = SessionManager(this)
 

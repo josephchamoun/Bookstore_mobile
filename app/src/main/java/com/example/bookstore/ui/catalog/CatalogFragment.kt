@@ -13,6 +13,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.fragment.app.Fragment
@@ -45,16 +46,19 @@ class CatalogFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val rvBooks = view.findViewById<RecyclerView>(R.id.rvBooks)
-        val rvCategories = view.findViewById<RecyclerView>(R.id.rvCategories)
-        val etSearch = view.findViewById<EditText>(R.id.etSearch)
-        val etMinPrice = view.findViewById<EditText>(R.id.etMinPrice)
-        val etMaxPrice = view.findViewById<EditText>(R.id.etMaxPrice)
-        val cbInStock = view.findViewById<CheckBox>(R.id.cbInStock)
-        val spinnerSort = view.findViewById<Spinner>(R.id.spinnerSort)
+        val rvBooks         = view.findViewById<RecyclerView>(R.id.rvBooks)
+        val rvCategories    = view.findViewById<RecyclerView>(R.id.rvCategories)
+        val etSearch        = view.findViewById<EditText>(R.id.etSearch)
+        val etMinPrice      = view.findViewById<EditText>(R.id.etMinPrice)
+        val etMaxPrice      = view.findViewById<EditText>(R.id.etMaxPrice)
+        val cbInStock       = view.findViewById<CheckBox>(R.id.cbInStock)
+        val spinnerSort     = view.findViewById<Spinner>(R.id.spinnerSort)
         val btnClearFilters = view.findViewById<Button>(R.id.btnClearFilters)
-        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
-        val tvCount = view.findViewById<TextView>(R.id.tvResultCount)
+        val swipeRefresh    = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        val tvCount         = view.findViewById<TextView>(R.id.tvResultCount)
+        // ── declare these BEFORE they are referenced below ──
+        val btnToggleFilters = view.findViewById<Button>(R.id.btnToggleFilters)
+        val filterPanel      = view.findViewById<LinearLayout>(R.id.filterPanel)
 
         bookAdapter = BookAdapter(
             onClick = { book ->
@@ -88,15 +92,11 @@ class CatalogFragment : Fragment() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 viewModel.updateSortOption(BookSortOption.entries[position])
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
         etSearch.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                viewModel.updateQuery(s.toString())
-            }
-
+            override fun afterTextChanged(s: Editable?) { viewModel.updateQuery(s.toString()) }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
         })
@@ -108,7 +108,6 @@ class CatalogFragment : Fragment() {
                     etMaxPrice.text.toString()
                 )
             }
-
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
         }
@@ -127,6 +126,18 @@ class CatalogFragment : Fragment() {
             spinnerSort.setSelection(BookSortOption.entries.indexOf(BookSortOption.NEWEST))
             categoryAdapter.clearSelection()
             viewModel.clearFilters()
+            filterPanel.visibility = View.GONE
+            btnToggleFilters.text = "⚙ Filters"
+        }
+
+        btnToggleFilters.setOnClickListener {
+            if (filterPanel.visibility == View.GONE) {
+                filterPanel.visibility = View.VISIBLE
+                btnToggleFilters.text = "✕ Hide Filters"
+            } else {
+                filterPanel.visibility = View.GONE
+                btnToggleFilters.text = "⚙ Filters"
+            }
         }
 
         swipeRefresh.setOnRefreshListener {

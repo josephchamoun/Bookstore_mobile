@@ -5,123 +5,198 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <TextView
+    <!-- ── Header row: title + filter toggle ── -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:paddingStart="20dp"
-        android:paddingEnd="20dp"
+        android:paddingEnd="12dp"
         android:paddingTop="20dp"
-        android:text="Catalog"
-        android:textColor="@color/text_primary"
-        android:textSize="26sp"
-        android:textStyle="bold" />
+        android:paddingBottom="12dp">
 
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Catalog"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:letterSpacing="-0.02"
+            android:textStyle="bold" />
+
+        <!-- Modern pill filter button -->
+        <Button
+            android:id="@+id/btnToggleFilters"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_chip_dark"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="⚙ Filters"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:letterSpacing="0.01" />
+
+    </LinearLayout>
+
+    <!-- ── Search bar (always visible) ── -->
     <EditText
         android:id="@+id/etSearch"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="50dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginBottom="12dp"
         android:background="@drawable/bg_input"
-        android:hint="@string/search_hint"
+        android:hint="Search books, authors…"
         android:inputType="text"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:singleLine="true"
-        android:textColor="@color/text_primary" />
+        android:textColor="#FFFFFF"
+        android:textColorHint="#80FFFFFF" />
 
+    <!-- ══ Collapsible filter panel ══ -->
     <LinearLayout
+        android:id="@+id/filterPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:orientation="horizontal"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:background="@color/surface"
+        android:paddingTop="16dp"
+        android:paddingBottom="20dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
-        <EditText
-            android:id="@+id/etMinPrice"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input"
-            android:hint="Min $"
-            android:inputType="numberDecimal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:textColor="@color/text_primary" />
-
-        <EditText
-            android:id="@+id/etMaxPrice"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input"
-            android:hint="Max $"
-            android:inputType="numberDecimal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:textColor="@color/text_primary" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
-
-        <Spinner
-            android:id="@+id/spinnerSort"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp" />
-
-        <CheckBox
-            android:id="@+id/cbInStock"
+        <!-- Section label -->
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="In stock only"
-            android:textColor="@color/text_primary" />
+            android:text="PRICE RANGE"
+            android:textColor="#80FFFFFF"
+            android:textSize="10sp"
+            android:letterSpacing="0.15"
+            android:paddingBottom="8dp" />
 
+        <!-- Price inputs -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etMinPrice"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="Min $"
+                android:inputType="numberDecimal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#60FFFFFF" />
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="0dp" />
+
+            <EditText
+                android:id="@+id/etMaxPrice"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="Max $"
+                android:inputType="numberDecimal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#60FFFFFF" />
+
+        </LinearLayout>
+
+        <!-- Sort label -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SORT BY"
+            android:textColor="#80FFFFFF"
+            android:textSize="10sp"
+            android:letterSpacing="0.15"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp" />
+
+        <!-- Sort + In stock -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <Spinner
+                android:id="@+id/spinnerSort"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp" />
+
+            <CheckBox
+                android:id="@+id/cbInStock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="In stock"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:buttonTint="#FFFFFF" />
+
+        </LinearLayout>
+
+        <!-- Clear filters -->
         <Button
             android:id="@+id/btnClearFilters"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginStart="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="16dp"
             android:background="@drawable/bg_chip_dark"
-            android:text="Clear"
+            android:text="✕  Clear Filters"
             android:textAllCaps="false"
-            android:textColor="@color/text_primary" />
+            android:textColor="#FF6B6B"
+            android:textSize="13sp" />
+
     </LinearLayout>
 
+    <!-- ── Categories label ── -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="20dp"
-        android:paddingTop="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="4dp"
         android:text="CATEGORIES"
-        android:textColor="@color/text_secondary"
-        android:textSize="11sp"
-        android:letterSpacing="0.1" />
+        android:textColor="#80FFFFFF"
+        android:textSize="10sp"
+        android:letterSpacing="0.15" />
 
+    <!-- ── Categories horizontal list ── -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCategories"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="16dp" />
 
+    <!-- ── Result count ── -->
     <TextView
         android:id="@+id/tvResultCount"
         android:layout_width="match_parent"
@@ -130,10 +205,11 @@
         android:paddingTop="16dp"
         android:paddingBottom="8dp"
         android:text="Featured Books"
-        android:textColor="@color/text_primary"
-        android:textSize="18sp"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
         android:textStyle="bold" />
 
+    <!-- ── Book grid ── -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
