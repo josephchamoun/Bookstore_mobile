@@ -25,4 +25,7 @@ interface OrderDao {
 
     @Query("DELETE FROM orders_cache")
     suspend fun clearAll()
+
+    @Query("SELECT MAX(updatedAt) FROM orders_cache WHERE isSynced = 1")
+    suspend fun getLatestUpdatedAt(): String?
 }

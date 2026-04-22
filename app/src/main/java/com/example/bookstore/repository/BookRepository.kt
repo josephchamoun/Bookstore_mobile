@@ -63,16 +63,34 @@ class BookRepository(
 
     suspend fun refreshBooksFromNetwork() {
         try {
-            val response = api.getBooks()
+            // 1. Get local latest timestamp
+            val localLastUpdated = bookDao.getLatestUpdatedAt()
+
+            // 2. Pass it to server — server returns only books changed after this
+            val response = api.getBooks(since = localLastUpdated)
             Log.d("BookRepo", "response code: ${response.code()}")
-            Log.d("BookRepo", "books count: ${response.body()?.books?.size}")
+
             if (response.isSuccessful) {
-                val books = response.body()?.books ?: return
+                val body = response.body() ?: return
+                val books = body.books ?: return
+
+                // 3. Server returned empty list — nothing changed, we're done
+                if (books.isEmpty()) {
+                    Log.d("BookRepo", "No changes since $localLastUpdated, skipping")
+                    return
+                }
+
                 val now = Instant.now().toString()
-                val freshIds = books.map { it.bookId }.toSet()
                 bookDao.upsertAll(books.map { it.toEntity(now) })
-                bookDao.deleteAbsent(freshIds.toList())
-                Log.d("BookRepo", "upserted ${books.size} books")
+
+                if (localLastUpdated == null) {
+                    // 4a. First ever fetch — delete books that no longer exist on server
+                    bookDao.deleteAbsent(books.map { it.bookId })
+                    Log.d("BookRepo", "Full fetch, upserted ${books.size} books")
+                } else {
+                    // 4b. Partial fetch — don't touch books we didn't receive
+                    Log.d("BookRepo", "Partial fetch, upserted ${books.size} changed books")
+                }
             }
         } catch (e: Exception) {
             Log.e("BookRepo", "exception: ${e.message}", e)
@@ -136,7 +154,8 @@ class BookRepository(
         coverUrl     = coverUrl,
         categoryName = categoryName,
         cachedAt     = cachedAt,
-        hasEbook     = hasEbook == 1
+        hasEbook     = hasEbook == 1,
+        updatedAt    = updatedAt
     )
 
     private fun CategoryEntity.toCategory() = Category(

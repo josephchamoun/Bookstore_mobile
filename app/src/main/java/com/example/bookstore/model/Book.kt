@@ -12,5 +12,6 @@ data class Book(
     @SerializedName("b_cover_url") val coverUrl: String?,
     @SerializedName("c_name")      val categoryName: String?,
     @SerializedName("has_ebook") val hasEbook: Int = 0,
+    @SerializedName("updated_at")  val updatedAt: String? = null,
     val isFavorite: Boolean = false
 )

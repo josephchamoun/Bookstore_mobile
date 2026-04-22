@@ -14,5 +14,6 @@ data class BookEntity(
     val coverUrl: String?,
     val categoryName: String?,
     val cachedAt: String,
-    val hasEbook: Boolean = false
+    val hasEbook: Boolean = false,
+    val updatedAt: String? = null
 )

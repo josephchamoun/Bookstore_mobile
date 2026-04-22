@@ -30,4 +30,7 @@ interface BookDao {
 
     @Query("DELETE FROM books_cache WHERE bookId NOT IN (:ids)")
     suspend fun deleteAbsent(ids: List<Int>)
+
+    @Query("SELECT MAX(updatedAt) FROM books_cache")
+    suspend fun getLatestUpdatedAt(): String?
 }

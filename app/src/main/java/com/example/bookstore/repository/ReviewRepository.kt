@@ -17,37 +17,52 @@ class ReviewRepository(context: Context) {
     private val pendingReviewDao = AppDatabase.getInstance(context).pendingReviewDao()
     private val api              = RetrofitClient.instance
     private val sessionManager   = SessionManager(context)
+    private val prefs            = context.getSharedPreferences("review_prefs", Context.MODE_PRIVATE)
+
+    // Save/load average rating per book
+    private fun saveAverageRating(bookId: Int, avg: Float) {
+        prefs.edit().putFloat("avg_rating_$bookId", avg).apply()
+    }
+
+    fun getCachedAverageRating(bookId: Int): Float {
+        return prefs.getFloat("avg_rating_$bookId", 0f)
+    }
 
     // ── Observe cached reviews for a book — Flow never suspends ──────────────
     fun observeReviews(bookId: Int): Flow<List<ReviewEntity>> {
         return reviewDao.getReviewsByBook(bookId)
     }
 
-    // ── Refresh from network — upsert + deleteAbsent, never clearAll ──────────
     suspend fun refreshReviews(bookId: Int): Float {
-        val response = api.getReviews(bookId)
-        if (response.success) {
-            val entities = response.reviews.map { r ->
-                ReviewEntity(
-                    reviewId  = r.reviewId,
-                    bookId    = bookId,
-                    userId    = r.userId,
-                    userName  = r.userName,
-                    rating    = r.rating,
-                    comment   = r.comment,
-                    status    = "approved",
-                    createdAt = r.createdAt
-                )
+        return try {
+            val response = api.getReviews(bookId)
+            if (response.success) {
+                val entities = response.reviews.map { r ->
+                    ReviewEntity(
+                        reviewId  = r.reviewId,
+                        bookId    = bookId,
+                        userId    = r.userId,
+                        userName  = r.userName,
+                        rating    = r.rating,
+                        comment   = r.comment,
+                        status    = "approved",
+                        createdAt = r.createdAt
+                    )
+                }
+                reviewDao.upsertAll(entities)
+                if (entities.isNotEmpty()) {
+                    reviewDao.deleteAbsentForBook(bookId, entities.map { it.reviewId })
+                }
+                // Save to prefs so it survives offline
+                saveAverageRating(bookId, response.averageRating)
             }
-            reviewDao.upsertAll(entities)
-
-            // Remove reviews that were deleted/rejected since last fetch
-            if (entities.isNotEmpty()) {
-                reviewDao.deleteAbsentForBook(bookId, entities.map { it.reviewId })
-            }
+            response.averageRating
+        } catch (e: Exception) {
+            // Return cached average instead of 0f
+            getCachedAverageRating(bookId)
         }
-        return response.averageRating
     }
+
 
     // ── Submit review — API first, fallback to offline queue ──────────────────
     suspend fun submitReview(bookId: Int, rating: Int, comment: String): SubmitResult {

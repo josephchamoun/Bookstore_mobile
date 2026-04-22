@@ -46,8 +46,11 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         if (currentBookId == bookId) return
         currentBookId = bookId
 
+
+        _averageRating.value = repository.getCachedAverageRating(bookId)  // ADD THIS
+
         viewModelScope.launch {
-            repository.observeReviews(bookId).collect { list ->
+            repository.observeReviews(bookId).collect { list: List<ReviewEntity> ->
                 _reviews.postValue(list)
             }
         }

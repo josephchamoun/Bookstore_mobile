@@ -39,20 +39,34 @@ class OrderRepository(context: Context, private val sessionManager: SessionManag
 
     private suspend fun fetchAndCacheOrders(): List<Order> {
         return try {
-            val response = api.getOrders(sessionManager.getBearerToken())
+            // 1. Get latest synced order timestamp from Room
+            val localLastUpdated = orderDao.getLatestUpdatedAt()
+
+            // 2. Pass it to server — returns only orders changed after this
+            val response = api.getOrders(sessionManager.getBearerToken(), since = localLastUpdated)
+
             if (response.isSuccessful) {
                 val orders = response.body()?.orders ?: emptyList()
                 val now    = Instant.now().toString()
-                // Upsert fresh orders — no clearAll() so cache survives failed calls
+
+                // 3. Nothing changed
+                if (orders.isEmpty()) {
+                    Log.d("OrderRepo", "No changes since $localLastUpdated, skipping")
+                    return emptyList()
+                }
+
+                // 4. Upsert changed orders
                 orderDao.upsertAll(orders.map { it.toEntity(now) })
-                // Remove orders that no longer exist on the server
-                if (orders.isNotEmpty()) {
+
+                if (localLastUpdated == null) {
+                    // 5a. First ever fetch — safe to delete absent orders
                     orderDao.deleteAbsent(orders.map { it.orderId })
                 }
+                // 5b. Partial fetch — don't touch orders we didn't receive
+
                 orders
             } else emptyList()
         } catch (e: Exception) {
-            // Network unavailable — cached orders stay intact, Flow keeps last emission
             emptyList()
         }
     }

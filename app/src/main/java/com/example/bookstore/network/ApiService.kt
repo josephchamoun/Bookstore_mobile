@@ -18,7 +18,8 @@ interface ApiService {
     @GET("api/books/index.php")
     suspend fun getBooks(
         @Query("search") search: String? = null,
-        @Query("category_id") categoryId: Int? = null
+        @Query("category_id") categoryId: Int? = null,
+        @Query("since")       since: String? = null
     ): Response<BooksResponse>
 
     @GET("api/books/show.php")
@@ -37,7 +38,8 @@ interface ApiService {
 
     @GET("api/orders/index.php")
     suspend fun getOrders(
-        @Header("Authorization") token: String
+        @Header("Authorization") token: String,
+        @Query("since") since: String? = null
     ): Response<OrdersResponse>
 
     @POST("api/orders/cancel.php")

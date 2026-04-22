@@ -1,5 +1,7 @@
 package com.example.bookstore.model
 
+import com.google.gson.annotations.SerializedName
+
 
 data class AuthResponse(
     val message: String?,
@@ -10,7 +12,8 @@ data class AuthResponse(
 
 data class BooksResponse(
     val books: List<Book>?,
-    val error: String?
+    val error: String?,
+    @SerializedName("last_updated") val lastUpdated: String? = null  // ADD THIS
 )
 
 data class BookResponse(
@@ -25,7 +28,8 @@ data class CategoriesResponse(
 
 data class OrdersResponse(
     val orders: List<Order>?,
-    val error: String?
+    val error: String?,
+    @SerializedName("last_updated") val lastUpdated: String? = null
 )
 
 data class PlaceOrderResponse(
