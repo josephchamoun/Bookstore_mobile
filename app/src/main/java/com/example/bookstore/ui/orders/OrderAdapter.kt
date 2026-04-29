@@ -1,5 +1,6 @@
 package com.example.bookstore.ui.orders
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,16 +11,17 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bookstore.R
 import com.example.bookstore.model.Order
+import com.google.gson.Gson
 
 class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvOrderId: TextView = view.findViewById(R.id.tvOrderId)
-        val tvStatus:  TextView = view.findViewById(R.id.tvStatus)
-        val tvDate:    TextView = view.findViewById(R.id.tvDate)
-        val tvTotal:   TextView = view.findViewById(R.id.tvTotal)
-        val tvItems:   TextView = view.findViewById(R.id.tvItems)
-
+        val tvOrderId:    TextView = view.findViewById(R.id.tvOrderId)
+        val tvStatus:     TextView = view.findViewById(R.id.tvStatus)
+        val tvDate:       TextView = view.findViewById(R.id.tvDate)
+        val tvTotal:      TextView = view.findViewById(R.id.tvTotal)
+        val tvItems:      TextView = view.findViewById(R.id.tvItems)
+        // ← CHANGED: tvPendingSync kept but always hidden now
         val tvPendingSync: TextView = view.findViewById(R.id.tvPendingSync)
     }
 
@@ -32,47 +34,40 @@ class OrderAdapter : ListAdapter<Order, OrderAdapter.ViewHolder>(DiffCallback) {
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val order = getItem(position)
 
-        holder.tvOrderId.text = if (order.isSynced) "Order #${order.orderId}" else "Order #—"
-        holder.tvDate.text    = order.orderDate
+        // ← CHANGED: orderId is String — show first 8 chars to keep it short
+        holder.tvOrderId.text = "Order #${order.orderId.take(8)}"
+        holder.tvDate.text = order.orderDate?.toDate()?.let {
+            java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(it)
+        } ?: ""
         holder.tvTotal.text   = "$${"%.2f".format(order.total)}"
-        holder.tvItems.text   = "${order.items?.size ?: 0} item(s)"
+        holder.tvItems.text   = "${order.items.size} item(s)"
 
-        holder.tvPendingSync.visibility = if (order.isSynced) View.GONE else View.VISIBLE
-
-        holder.tvStatus.text = if (order.isSynced) {
-            order.status.replaceFirstChar { it.uppercase() }
-        } else {
-            "Pending"
-        }
+        // ← CHANGED: no more isSynced — all orders from Firestore are synced
+        holder.tvPendingSync.visibility = View.GONE
+        holder.tvStatus.text = order.status.replaceFirstChar { it.uppercase() }
 
         holder.tvStatus.backgroundTintList = android.content.res.ColorStateList.valueOf(
             ContextCompat.getColor(holder.itemView.context, statusColor(order.status))
         )
 
-        // block click on unsynced orders — nothing to show yet
         holder.itemView.setOnClickListener {
-            if (!order.isSynced) return@setOnClickListener
-            val intent = android.content.Intent(
-                holder.itemView.context,
-                OrderDetailsActivity::class.java
-            )
-            intent.putExtra("order_json", com.google.gson.Gson().toJson(order))
+            val intent = Intent(holder.itemView.context, OrderDetailsActivity::class.java)
+            intent.putExtra("order_json", Gson().toJson(order))
             holder.itemView.context.startActivity(intent)
         }
     }
 
     companion object DiffCallback : DiffUtil.ItemCallback<Order>() {
-        override fun areItemsTheSame(a: Order, b: Order) = a.orderId == b.orderId
-        override fun areContentsTheSame(a: Order, b: Order) = a == b
+        override fun areItemsTheSame(a: Order, b: Order)     = a.orderId == b.orderId
+        override fun areContentsTheSame(a: Order, b: Order)  = a == b
     }
 
     private fun statusColor(status: String): Int = when (status.lowercase()) {
-        "pending sync" -> R.color.text_secondary
-        "pending"      -> R.color.accent_blue
-        "processing"   -> R.color.success
-        "shipped"      -> android.R.color.holo_orange_dark
-        "delivered"    -> android.R.color.holo_green_dark
-        "cancelled"    -> R.color.error
-        else           -> R.color.text_secondary
+        "pending"    -> R.color.accent_blue
+        "processing" -> R.color.success
+        "shipped"    -> android.R.color.holo_orange_dark
+        "delivered"  -> android.R.color.holo_green_dark
+        "cancelled"  -> R.color.error
+        else         -> R.color.text_secondary
     }
 }

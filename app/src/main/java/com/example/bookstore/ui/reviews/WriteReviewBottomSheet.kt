@@ -17,15 +17,16 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 class WriteReviewBottomSheet : BottomSheetDialogFragment() {
 
     private val viewModel: ReviewViewModel by activityViewModels()
-    private var bookId: Int = -1
+    private var bookId: String = ""  // ← CHANGED: Int → String
 
     companion object {
         private const val ARG_BOOK_ID = "book_id"
 
-        fun newInstance(bookId: Int): WriteReviewBottomSheet {
+        // ← CHANGED: bookId: Int → String
+        fun newInstance(bookId: String): WriteReviewBottomSheet {
             return WriteReviewBottomSheet().apply {
                 arguments = Bundle().apply {
-                    putInt(ARG_BOOK_ID, bookId)
+                    putString(ARG_BOOK_ID, bookId)  // ← CHANGED: putInt → putString
                 }
             }
         }
@@ -33,7 +34,8 @@ class WriteReviewBottomSheet : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bookId = arguments?.getInt(ARG_BOOK_ID) ?: -1
+        // ← CHANGED: getString instead of getInt
+        bookId = arguments?.getString(ARG_BOOK_ID) ?: ""
     }
 
     override fun onCreateView(
@@ -55,40 +57,27 @@ class WriteReviewBottomSheet : BottomSheetDialogFragment() {
             viewModel.submitReview(bookId, rating, comment)
         }
 
-        // Observe review state
         viewModel.reviewState.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is ReviewState.Loading -> {
                     btnSubmit.isEnabled = false
-                    btnSubmit.text = "Submitting..."
+                    btnSubmit.text      = "Submitting..."
                 }
                 is ReviewState.Success -> {
-                    Toast.makeText(
-                        requireContext(),
-                        "✓ Review submitted — pending approval",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
                     viewModel.resetState()
                     dismiss()
                 }
-                is ReviewState.SavedOffline -> {
-                    Toast.makeText(
-                        requireContext(),
-                        "📶 No connection — review saved and will sync automatically",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    viewModel.resetState()
-                    dismiss()
-                }
+                // ← CHANGED: removed SavedOffline state — Firestore handles offline
                 is ReviewState.Error -> {
                     Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
                     btnSubmit.isEnabled = true
-                    btnSubmit.text = "Submit Review"
+                    btnSubmit.text      = "Submit Review"
                     viewModel.resetState()
                 }
                 is ReviewState.Idle -> {
                     btnSubmit.isEnabled = true
-                    btnSubmit.text = "Submit Review"
+                    btnSubmit.text      = "Submit Review"
                 }
             }
         }

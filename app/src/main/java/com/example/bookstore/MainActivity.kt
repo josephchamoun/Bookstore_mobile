@@ -1,13 +1,5 @@
 package com.example.bookstore
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -16,31 +8,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.fragment.app.Fragment
-import com.example.bookstore.network.RetrofitClient
-import com.example.bookstore.network.SessionManager
+import com.example.bookstore.auth.SessionManager
 import com.example.bookstore.ui.auth.LoginActivity
 import com.example.bookstore.ui.cart.CartFragment
 import com.example.bookstore.ui.catalog.CatalogFragment
 import com.example.bookstore.ui.orders.OrdersFragment
 import com.example.bookstore.ui.profile.ProfileFragment
 import com.example.bookstore.viewmodel.CartViewModel
-import com.example.bookstore.worker.OrderSyncWorker
-import com.example.bookstore.worker.ReviewSyncWorker
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.content.Intent
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var sessionManager: SessionManager
     private val cartViewModel: CartViewModel by viewModels()
     private var cartCount: Int = 0
-    private lateinit var connectivityManager: ConnectivityManager
-    private lateinit var networkCallback: ConnectivityManager.NetworkCallback
-
-    private val unauthorizedReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            logoutAndRedirect()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,18 +29,7 @@ class MainActivity : AppCompatActivity() {
 
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-
-        // Custom styled title
         supportActionBar?.setDisplayShowTitleEnabled(false)
-
-        sessionManager = SessionManager(this)
-
-        ContextCompat.registerReceiver(
-            this,
-            unauthorizedReceiver,
-            IntentFilter(RetrofitClient.ACTION_UNAUTHORIZED),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
         if (savedInstanceState == null) {
@@ -80,27 +50,6 @@ class MainActivity : AppCompatActivity() {
             }
             true
         }
-
-        registerNetworkCallback()
-    }
-
-    private fun registerNetworkCallback() {
-        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE)
-                as ConnectivityManager
-
-        networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                // Retry both pending orders and pending reviews when network returns
-                OrderSyncWorker.scheduleNow(applicationContext)
-                ReviewSyncWorker.scheduleNow(applicationContext) // ✅ added
-            }
-        }
-
-        val request = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-
-        connectivityManager.registerNetworkCallback(request, networkCallback)
     }
 
     override fun onResume() {
@@ -118,8 +67,8 @@ class MainActivity : AppCompatActivity() {
 
         menu.findItem(R.id.action_cart)?.apply {
             isEnabled = hasItems
-            title = if (hasItems) "Cart ($cartCount)" else "Cart"
-            icon = icon?.mutate()?.let { drawable ->
+            title     = if (hasItems) "Cart ($cartCount)" else "Cart"
+            icon      = icon?.mutate()?.let { drawable ->
                 DrawableCompat.wrap(drawable).apply {
                     DrawableCompat.setTint(
                         this,
@@ -153,25 +102,17 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.action_logout -> {
-                logoutAndRedirect()
+                SessionManager.logout()
+                startActivity(
+                    Intent(this, LoginActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                )
+                finish()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(unauthorizedReceiver)
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-    }
-
-    private fun logoutAndRedirect() {
-        sessionManager.logout()
-        startActivity(Intent(this, LoginActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        })
-        finish()
     }
 
     private fun loadFragment(fragment: Fragment) {

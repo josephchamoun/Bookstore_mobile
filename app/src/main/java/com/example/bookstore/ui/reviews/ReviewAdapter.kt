@@ -9,11 +9,12 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bookstore.R
-import com.example.bookstore.database.ReviewEntity
+import com.example.bookstore.model.Review  // ← CHANGED: ReviewEntity → Review
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ReviewAdapter : ListAdapter<ReviewEntity, ReviewAdapter.ViewHolder>(DiffCallback()) {
+class ReviewAdapter : ListAdapter<Review, ReviewAdapter.ViewHolder>(DiffCallback()) {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvAvatar   : TextView  = view.findViewById(R.id.tvAvatar)
@@ -31,27 +32,27 @@ class ReviewAdapter : ListAdapter<ReviewEntity, ReviewAdapter.ViewHolder>(DiffCa
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val review = getItem(position)
-
-        // First letter of name as avatar
-        holder.tvAvatar.text   = review.userName.firstOrNull()?.uppercase() ?: "?"
-        holder.tvUserName.text = review.userName
+        holder.tvAvatar.text    = review.userName.firstOrNull()?.uppercase() ?: "?"
+        holder.tvUserName.text  = review.userName
         holder.ratingBar.rating = review.rating.toFloat()
-        holder.tvComment.text  = review.comment
-        holder.tvDate.text     = formatDate(review.createdAt)
+        holder.tvComment.text   = review.comment
+        // ← CHANGED: format Timestamp instead of String date
+        holder.tvDate.text      = formatTimestamp(review.createdAt)
     }
 
-    private fun formatDate(dateStr: String): String {
+    // ← CHANGED: accepts Timestamp? instead of String
+    private fun formatTimestamp(timestamp: Timestamp?): String {
+        if (timestamp == null) return ""
         return try {
-            val input  = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-            val output = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-            output.format(input.parse(dateStr)!!)
+            val sdf = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+            sdf.format(timestamp.toDate())
         } catch (e: Exception) {
-            dateStr
+            ""
         }
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<ReviewEntity>() {
-        override fun areItemsTheSame(a: ReviewEntity, b: ReviewEntity) = a.reviewId == b.reviewId
-        override fun areContentsTheSame(a: ReviewEntity, b: ReviewEntity) = a == b
+    class DiffCallback : DiffUtil.ItemCallback<Review>() {
+        override fun areItemsTheSame(a: Review, b: Review) = a.reviewId == b.reviewId
+        override fun areContentsTheSame(a: Review, b: Review) = a == b
     }
 }

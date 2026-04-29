@@ -20,12 +20,14 @@ class ReviewsActivity : AppCompatActivity() {
 
     private val viewModel: ReviewViewModel by viewModels()
     private lateinit var adapter: ReviewAdapter
+    private var bookId: String = ""  // ← CHANGED: Int → String
 
     companion object {
         private const val EXTRA_BOOK_ID    = "book_id"
         private const val EXTRA_BOOK_TITLE = "book_title"
 
-        fun start(context: Context, bookId: Int, bookTitle: String) {
+        // ← CHANGED: bookId: Int → String
+        fun start(context: Context, bookId: String, bookTitle: String) {
             context.startActivity(
                 Intent(context, ReviewsActivity::class.java).apply {
                     putExtra(EXTRA_BOOK_ID, bookId)
@@ -39,30 +41,29 @@ class ReviewsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reviews)
 
-        val bookId    = intent.getIntExtra(EXTRA_BOOK_ID, -1)
+        // ← CHANGED: getStringExtra instead of getIntExtra
+        bookId = intent.getStringExtra(EXTRA_BOOK_ID) ?: ""
         val bookTitle = intent.getStringExtra(EXTRA_BOOK_TITLE) ?: "Reviews"
 
-        // Views
-        val toolbar        = findViewById<Toolbar>(R.id.toolbar)
-        val tvAverageRating = findViewById<TextView>(R.id.tvAverageRating)
-        val ratingBarAverage = findViewById<RatingBar>(R.id.ratingBarAverage)
-        val tvReviewCount  = findViewById<TextView>(R.id.tvReviewCount)
-        val swipeRefresh   = findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
-        val rvReviews      = findViewById<RecyclerView>(R.id.rvReviews)
-        val btnWriteReview = findViewById<Button>(R.id.btnWriteReview)
+        if (bookId.isEmpty()) { finish(); return }
 
-        // Toolbar
+        val toolbar          = findViewById<Toolbar>(R.id.toolbar)
+        val tvAverageRating  = findViewById<TextView>(R.id.tvAverageRating)
+        val ratingBarAverage = findViewById<RatingBar>(R.id.ratingBarAverage)
+        val tvReviewCount    = findViewById<TextView>(R.id.tvReviewCount)
+        val swipeRefresh     = findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        val rvReviews        = findViewById<RecyclerView>(R.id.rvReviews)
+        val btnWriteReview   = findViewById<Button>(R.id.btnWriteReview)
+
         setSupportActionBar(toolbar)
         supportActionBar?.title = bookTitle
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { finish() }
 
-        // RecyclerView
         adapter = ReviewAdapter()
         rvReviews.layoutManager = LinearLayoutManager(this)
         rvReviews.adapter = adapter
 
-        // Observers
         viewModel.reviews.observe(this) { reviews ->
             adapter.submitList(reviews)
             tvReviewCount.text = when {
@@ -73,7 +74,7 @@ class ReviewsActivity : AppCompatActivity() {
         }
 
         viewModel.averageRating.observe(this) { avg ->
-            tvAverageRating.text = String.format("%.1f", avg)
+            tvAverageRating.text    = String.format("%.1f", avg)
             ratingBarAverage.rating = avg
         }
 
@@ -85,23 +86,21 @@ class ReviewsActivity : AppCompatActivity() {
             btnWriteReview.visibility = if (eligible) View.VISIBLE else View.GONE
         }
 
-        // Listeners
         btnWriteReview.setOnClickListener {
+            // ← CHANGED: passes String bookId
             WriteReviewBottomSheet.newInstance(bookId)
                 .show(supportFragmentManager, "WriteReviewBottomSheet")
         }
 
         swipeRefresh.setOnRefreshListener {
-            viewModel.refreshReviews(bookId)
+            viewModel.init(bookId)
         }
 
-        // Init — starts Flow + first network refresh
         viewModel.init(bookId)
     }
 
     override fun onResume() {
         super.onResume()
-        val bookId = intent.getIntExtra(EXTRA_BOOK_ID, -1)
-        if (bookId != -1) viewModel.refreshReviews(bookId)
+        if (bookId.isNotEmpty()) viewModel.init(bookId)
     }
 }

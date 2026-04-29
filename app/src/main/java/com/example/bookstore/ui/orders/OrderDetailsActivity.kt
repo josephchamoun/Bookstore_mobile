@@ -15,6 +15,8 @@ import com.example.bookstore.R
 import com.example.bookstore.model.Order
 import com.example.bookstore.viewmodel.OrderViewModel
 import com.google.gson.Gson
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class OrderDetailsActivity : AppCompatActivity() {
 
@@ -25,18 +27,18 @@ class OrderDetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_order_details)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        val tvOrderId = findViewById<TextView>(R.id.tvOrderId)
-        val tvStatus = findViewById<TextView>(R.id.tvStatus)
-        val tvDate = findViewById<TextView>(R.id.tvDate)
-        val tvAddress = findViewById<TextView>(R.id.tvAddress)
-        val tvTotal = findViewById<TextView>(R.id.tvTotal)
-        val stepPlaced = findViewById<TextView>(R.id.stepPlaced)
+        val toolbar        = findViewById<Toolbar>(R.id.toolbar)
+        val tvOrderId      = findViewById<TextView>(R.id.tvOrderId)
+        val tvStatus       = findViewById<TextView>(R.id.tvStatus)
+        val tvDate         = findViewById<TextView>(R.id.tvDate)
+        val tvAddress      = findViewById<TextView>(R.id.tvAddress)
+        val tvTotal        = findViewById<TextView>(R.id.tvTotal)
+        val stepPlaced     = findViewById<TextView>(R.id.stepPlaced)
         val stepProcessing = findViewById<TextView>(R.id.stepProcessing)
-        val stepShipped = findViewById<TextView>(R.id.stepShipped)
-        val stepDelivered = findViewById<TextView>(R.id.stepDelivered)
+        val stepShipped    = findViewById<TextView>(R.id.stepShipped)
+        val stepDelivered  = findViewById<TextView>(R.id.stepDelivered)
         val btnCancelOrder = findViewById<Button>(R.id.btnCancelOrder)
-        val rvItems = findViewById<RecyclerView>(R.id.rvOrderItems)
+        val rvItems        = findViewById<RecyclerView>(R.id.rvOrderItems)
 
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -49,24 +51,34 @@ class OrderDetailsActivity : AppCompatActivity() {
 
         fun render(order: Order) {
             currentOrder = order
-            tvOrderId.text = "Order #${order.orderId}"
-            tvStatus.text = order.status.replaceFirstChar { it.uppercase() }
-            tvDate.text = "Date: ${order.orderDate}"
-            tvAddress.text = "Address: ${order.shippingAddress}"
-            tvTotal.text = "$${"%.2f".format(order.total)}"
+            // ← CHANGED: orderId is now String — no # prefix issue
+            tvOrderId.text  = "Order #${order.orderId.take(8)}"
+            tvStatus.text   = order.status.replaceFirstChar { it.uppercase() }
+            // ← CHANGED: format Timestamp for display
+            tvDate.text = "Date: ${order.orderDate?.toDate()?.let {
+                java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(it)
+            } ?: "Unknown"}"
+            tvAddress.text  = "Address: ${order.shippingAddress}"
+            tvTotal.text    = "$${"%.2f".format(order.total)}"
+
             tvStatus.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 ContextCompat.getColor(this, statusColor(order.status))
             )
-            applyStepStyle(stepPlaced, !order.status.equals("cancelled", true))
-            applyStepStyle(stepProcessing, orderReached(order.status, "processing"))
-            applyStepStyle(stepShipped, orderReached(order.status, "shipped"))
-            applyStepStyle(stepDelivered, orderReached(order.status, "delivered"))
+
+            applyStepStyle(stepPlaced,     !order.status.equals("cancelled", true))
+            applyStepStyle(stepProcessing,  orderReached(order.status, "processing"))
+            applyStepStyle(stepShipped,     orderReached(order.status, "shipped"))
+            applyStepStyle(stepDelivered,   orderReached(order.status, "delivered"))
+
             btnCancelOrder.visibility =
-                if (order.status.equals("pending", ignoreCase = true)) View.VISIBLE else View.GONE
-            rvItems.adapter = OrderItemAdapter(order.items ?: emptyList())
+                if (order.status.equals("pending", ignoreCase = true)) View.VISIBLE
+                else View.GONE
+
+            rvItems.adapter = OrderItemAdapter(order.items)
         }
 
         btnCancelOrder.setOnClickListener {
+            // ← CHANGED: orderId is String now
             viewModel.cancelOrder(currentOrder.orderId)
         }
 
@@ -78,7 +90,6 @@ class OrderDetailsActivity : AppCompatActivity() {
             result ?: return@observe
             if (result.isSuccess) {
                 Toast.makeText(this, result.getOrNull() ?: "Order cancelled", Toast.LENGTH_SHORT).show()
-                viewModel.refreshOrders()
             } else {
                 Toast.makeText(
                     this,
@@ -92,10 +103,21 @@ class OrderDetailsActivity : AppCompatActivity() {
         render(currentOrder)
     }
 
+    // ← CHANGED: format String date nicely
+    private fun formatDate(dateStr: String): String {
+        return try {
+            val input  = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val output = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+            output.format(input.parse(dateStr)!!)
+        } catch (e: Exception) {
+            dateStr
+        }
+    }
+
     private fun orderReached(status: String, step: String): Boolean {
         val orderedStatuses = listOf("pending", "processing", "shipped", "delivered")
         val statusIndex = orderedStatuses.indexOf(status.lowercase())
-        val stepIndex = orderedStatuses.indexOf(step.lowercase())
+        val stepIndex   = orderedStatuses.indexOf(step.lowercase())
         return statusIndex >= stepIndex && statusIndex >= 0
     }
 
@@ -107,11 +129,11 @@ class OrderDetailsActivity : AppCompatActivity() {
     }
 
     private fun statusColor(status: String): Int = when (status.lowercase()) {
-        "pending" -> R.color.accent_blue
+        "pending"    -> R.color.accent_blue
         "processing" -> R.color.success
-        "shipped" -> android.R.color.holo_orange_dark
-        "delivered" -> android.R.color.holo_green_dark
-        "cancelled" -> R.color.error
-        else -> R.color.text_secondary
+        "shipped"    -> android.R.color.holo_orange_dark
+        "delivered"  -> android.R.color.holo_green_dark
+        "cancelled"  -> R.color.error
+        else         -> R.color.text_secondary
     }
 }

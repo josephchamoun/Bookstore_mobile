@@ -7,7 +7,6 @@ import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.view.LayoutInflater
-import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -27,13 +26,14 @@ import java.io.File
 class EbookActivity : AppCompatActivity() {
 
     private val viewModel: EbookViewModel by viewModels()
-    private var bookId: Int = -1
+    private var bookId: String = ""  // ← CHANGED: Int → String
 
     companion object {
         private const val EXTRA_BOOK_ID    = "book_id"
         private const val EXTRA_BOOK_TITLE = "book_title"
 
-        fun start(context: Context, bookId: Int, bookTitle: String) {
+        // ← CHANGED: bookId: Int → String
+        fun start(context: Context, bookId: String, bookTitle: String) {
             context.startActivity(
                 Intent(context, EbookActivity::class.java).apply {
                     putExtra(EXTRA_BOOK_ID, bookId)
@@ -47,10 +47,11 @@ class EbookActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ebook)
 
-        bookId = intent.getIntExtra(EXTRA_BOOK_ID, -1)
+        // ← CHANGED: getStringExtra instead of getIntExtra
+        bookId = intent.getStringExtra(EXTRA_BOOK_ID) ?: ""
         val bookTitle = intent.getStringExtra(EXTRA_BOOK_TITLE) ?: "Ebook"
 
-        if (bookId == -1) { finish(); return }
+        if (bookId.isEmpty()) { finish(); return }
 
         val toolbar         = findViewById<Toolbar>(R.id.toolbar)
         val recyclerView    = findViewById<RecyclerView>(R.id.rvPages)
@@ -68,7 +69,7 @@ class EbookActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
 
         btnRetry.setOnClickListener {
-            tvLoadingMsg.text = "Loading ebook..."
+            tvLoadingMsg.text        = "Loading ebook..."
             layoutLoading.visibility = View.VISIBLE
             layoutError.visibility   = View.GONE
             viewModel.loadPdf(bookId)
@@ -84,11 +85,11 @@ class EbookActivity : AppCompatActivity() {
                     recyclerView.visibility  = View.GONE
                     layoutPageBar.visibility = View.GONE
                 }
-                is PdfState.Ready   -> showPdf(
+                is PdfState.Ready -> showPdf(
                     state.file, recyclerView, layoutLoading,
                     layoutError, layoutPageBar, tvPageIndicator
                 )
-                is PdfState.Error   -> {
+                is PdfState.Error -> {
                     layoutLoading.visibility = View.GONE
                     layoutError.visibility   = View.VISIBLE
                     recyclerView.visibility  = View.GONE
@@ -121,12 +122,8 @@ class EbookActivity : AppCompatActivity() {
             recyclerView.layoutManager = LinearLayoutManager(this)
             recyclerView.adapter       = adapter
 
-            // Scroll to last read page
-            if (lastPage > 0) {
-                recyclerView.scrollToPosition(lastPage)
-            }
+            if (lastPage > 0) recyclerView.scrollToPosition(lastPage)
 
-            // Update page indicator on scroll
             val layoutManager = recyclerView.layoutManager as LinearLayoutManager
             recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
@@ -149,13 +146,11 @@ class EbookActivity : AppCompatActivity() {
             layoutError.visibility   = View.VISIBLE
             recyclerView.visibility  = View.GONE
             layoutPageBar.visibility = View.GONE
-            findViewById<TextView>(R.id.tvError).text =
-                "Failed to open PDF: ${e.message}"
+            findViewById<TextView>(R.id.tvError).text = "Failed to open PDF: ${e.message}"
         }
     }
 }
 
-// ── PDF page adapter — renders each page as a Bitmap ─────────────────────────
 class PdfPageAdapter(
     private val renderer: PdfRenderer,
     private val pageCount: Int
