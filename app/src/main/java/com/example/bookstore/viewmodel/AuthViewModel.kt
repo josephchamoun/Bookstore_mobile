@@ -5,16 +5,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.bookstore.network.SessionManager
-import com.example.bookstore.repository.AuthRepository
+import com.example.bookstore.auth.SessionManager
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val sessionManager = SessionManager(application)
-    private val repository     = AuthRepository(sessionManager)
+    private val auth = Firebase.auth
+    private val db   = Firebase.firestore
 
-    private val _loginState  = MutableLiveData<Result<String>>()
+    private val _loginState = MutableLiveData<Result<String>>()
     val loginState: LiveData<Result<String>> = _loginState
 
     private val _registerState = MutableLiveData<Result<String>>()
@@ -26,31 +30,43 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = repository.login(email, password)
-            if (result.isSuccess) {
-                val name = sessionManager.getUserName() ?: "User"
+            try {
+                auth.signInWithEmailAndPassword(email, password).await()
+                val name = auth.currentUser?.displayName ?: "User"
                 _loginState.value = Result.success(name)
-            } else {
-                _loginState.value = Result.failure(result.exceptionOrNull()!!)
+            } catch (e: Exception) {
+                _loginState.value = Result.failure(e)
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
     fun register(name: String, email: String, password: String, address: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = repository.register(name, email, password, address)
-            if (result.isSuccess) {
-                _registerState.value = Result.success(result.getOrNull()?.message ?: "Success")
-            } else {
-                _registerState.value = Result.failure(result.exceptionOrNull()!!)
+            try {
+                val result = auth.createUserWithEmailAndPassword(email, password).await()
+                val uid = result.user!!.uid
+
+                db.collection("users").document(uid).set(
+                    mapOf("name" to name, "email" to email, "address" to address)
+                ).await()
+
+                val profileUpdate = UserProfileChangeRequest.Builder()
+                    .setDisplayName(name).build()
+                auth.currentUser?.updateProfile(profileUpdate)?.await()
+
+                _registerState.value = Result.success("Registration successful!")
+            } catch (e: Exception) {
+                _registerState.value = Result.failure(e)
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
-    fun isLoggedIn() = sessionManager.isLoggedIn()
+    fun isLoggedIn() = SessionManager.isLoggedIn()
 
-    fun logout() = sessionManager.clearSession()
+    fun logout() = SessionManager.logout()
 }

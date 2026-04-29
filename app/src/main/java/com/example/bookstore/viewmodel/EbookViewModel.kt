@@ -19,9 +19,8 @@ class EbookViewModel(application: Application) : AndroidViewModel(application) {
     val pdfState: LiveData<PdfState> = _pdfState
 
     // ── Load PDF — checks cache first, downloads if needed ───────────────────
-    fun loadPdf(bookId: Int) {
-        if (_pdfState.value is PdfState.Ready) return // already loaded
-
+    fun loadPdf(bookId: String) {  // ← change Int to String
+        if (_pdfState.value is PdfState.Ready) return
         viewModelScope.launch {
             _pdfState.value = PdfState.Loading
             when (val result = repository.loadPdf(bookId)) {
@@ -31,19 +30,16 @@ class EbookViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ── Last page memory — persisted in SharedPreferences ────────────────────
-    fun saveLastPage(bookId: Int, page: Int) {
+    fun saveLastPage(bookId: String, page: Int) { // ← String
         getApplication<Application>()
             .getSharedPreferences("ebook_prefs", Context.MODE_PRIVATE)
-            .edit()
-            .putInt("last_page_$bookId", page)
-            .apply()
+            .edit().putInt("last_page_$bookId", page).apply()
     }
 
-    fun getLastPage(bookId: Int): Int {
+    fun getLastPage(bookId: String): Int { // ← String
         return getApplication<Application>()
             .getSharedPreferences("ebook_prefs", Context.MODE_PRIVATE)
-            .getInt("last_page_$bookId", 0) // 0 = first page
+            .getInt("last_page_$bookId", 0)
     }
 }
 

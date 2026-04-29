@@ -26,7 +26,8 @@ class BookDetailsActivity : AppCompatActivity() {
     private val cartViewModel   : CartViewModel   by viewModels()
     private val reviewViewModel : ReviewViewModel by viewModels()
 
-    private var bookId: Int = -1
+    // ← CHANGED: bookId is now String instead of Int
+    private var bookId: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,16 +46,17 @@ class BookDetailsActivity : AppCompatActivity() {
         val ratingBarBook  = findViewById<RatingBar>(R.id.ratingBarBook)
         val tvBookRating   = findViewById<TextView>(R.id.tvBookRating)
         val progressBar    = findViewById<ProgressBar>(R.id.progressBar)
+        val btnReadEbook   = findViewById<Button>(R.id.btnReadEbook)
 
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = ""
         toolbar.setNavigationOnClickListener { finish() }
 
-        bookId = intent.getIntExtra("book_id", -1)
-        if (bookId == -1) { finish(); return }
+        // ← CHANGED: getStringExtra instead of getIntExtra
+        bookId = intent.getStringExtra("book_id") ?: ""
+        if (bookId.isEmpty()) { finish(); return }
 
-        // ── Book data ─────────────────────────────────────────────────────────
         bookViewModel.loadBookById(bookId)
 
         bookViewModel.isLoading.observe(this) { loading ->
@@ -64,11 +66,9 @@ class BookDetailsActivity : AppCompatActivity() {
         bookViewModel.selectedBook.observe(this) { book ->
             if (book == null) return@observe
 
-            android.util.Log.d("EbookDebug", "hasEbook = ${book.hasEbook}")
-
             tvTitle.text    = book.title
             tvAuthor.text   = "by ${book.author}"
-            tvCategory.text = book.categoryName ?: ""
+            tvCategory.text = book.categoryName
             tvPrice.text    = "$${"%.2f".format(book.price)}"
             tvStock.text    = if (book.stock > 0) "In stock: ${book.stock}" else "Out of stock"
 
@@ -83,24 +83,22 @@ class BookDetailsActivity : AppCompatActivity() {
                 .into(ivCover)
 
             btnFavorite.setOnClickListener { bookViewModel.toggleFavorite(book) }
-
             btnAddToCart.setOnClickListener { cartViewModel.addToCart(book) }
 
-            // Open ReviewsActivity with book title for toolbar
             btnViewReviews.setOnClickListener {
+                // ← CHANGED: bookId is now String
                 ReviewsActivity.start(this, bookId, book.title)
             }
 
-            val btnReadEbook = findViewById<Button>(R.id.btnReadEbook)
-
-            btnReadEbook.visibility = if (book.hasEbook == 1) View.VISIBLE else View.GONE
+            // ← CHANGED: book.hasEbook is now Boolean not Int
+            btnReadEbook.visibility = if (book.hasEbook) View.VISIBLE else View.GONE
             btnReadEbook.setOnClickListener {
+                // ← CHANGED: bookId is now String
                 EbookActivity.start(this, bookId, book.title)
             }
-
         }
 
-        // ── Reviews rating ────────────────────────────────────────────────────
+        // ← CHANGED: reviewViewModel.init() takes String now
         reviewViewModel.init(bookId)
 
         reviewViewModel.averageRating.observe(this) { avg ->
@@ -109,7 +107,6 @@ class BookDetailsActivity : AppCompatActivity() {
             else "No ratings yet"
         }
 
-        // ── Cart feedback ─────────────────────────────────────────────────────
         cartViewModel.message.observe(this) { msg ->
             if (msg != null) {
                 Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
@@ -120,6 +117,7 @@ class BookDetailsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (bookId != -1) reviewViewModel.refreshReviews(bookId)
+        // ← CHANGED: refreshReviews() takes String now
+        if (bookId.isNotEmpty()) reviewViewModel.init(bookId)
     }
 }

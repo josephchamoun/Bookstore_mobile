@@ -46,29 +46,29 @@ class CatalogFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val rvBooks         = view.findViewById<RecyclerView>(R.id.rvBooks)
-        val rvCategories    = view.findViewById<RecyclerView>(R.id.rvCategories)
-        val etSearch        = view.findViewById<EditText>(R.id.etSearch)
-        val etMinPrice      = view.findViewById<EditText>(R.id.etMinPrice)
-        val etMaxPrice      = view.findViewById<EditText>(R.id.etMaxPrice)
-        val cbInStock       = view.findViewById<CheckBox>(R.id.cbInStock)
-        val spinnerSort     = view.findViewById<Spinner>(R.id.spinnerSort)
-        val btnClearFilters = view.findViewById<Button>(R.id.btnClearFilters)
-        val swipeRefresh    = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
-        val tvCount         = view.findViewById<TextView>(R.id.tvResultCount)
-        // ── declare these BEFORE they are referenced below ──
+        val rvBooks          = view.findViewById<RecyclerView>(R.id.rvBooks)
+        val rvCategories     = view.findViewById<RecyclerView>(R.id.rvCategories)
+        val etSearch         = view.findViewById<EditText>(R.id.etSearch)
+        val etMinPrice       = view.findViewById<EditText>(R.id.etMinPrice)
+        val etMaxPrice       = view.findViewById<EditText>(R.id.etMaxPrice)
+        val cbInStock        = view.findViewById<CheckBox>(R.id.cbInStock)
+        val spinnerSort      = view.findViewById<Spinner>(R.id.spinnerSort)
+        val btnClearFilters  = view.findViewById<Button>(R.id.btnClearFilters)
+        val swipeRefresh     = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        val tvCount          = view.findViewById<TextView>(R.id.tvResultCount)
         val btnToggleFilters = view.findViewById<Button>(R.id.btnToggleFilters)
         val filterPanel      = view.findViewById<LinearLayout>(R.id.filterPanel)
 
         bookAdapter = BookAdapter(
             onClick = { book ->
-                startActivity(Intent(requireContext(), BookDetailsActivity::class.java).apply {
-                    putExtra("book_id", book.bookId)
-                })
+                startActivity(
+                    Intent(requireContext(), BookDetailsActivity::class.java).apply {
+                        // ← CHANGED: book.bookId is now String, not Int
+                        putExtra("book_id", book.bookId)
+                    }
+                )
             },
-            onFavoriteClick = { book ->
-                viewModel.toggleFavorite(book)
-            }
+            onFavoriteClick = { book -> viewModel.toggleFavorite(book) }
         )
         rvBooks.layoutManager = GridLayoutManager(requireContext(), 2)
         rvBooks.adapter = bookAdapter
@@ -89,9 +89,9 @@ class CatalogFragment : Fragment() {
             BookSortOption.entries.map { it.label }
         )
         spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                viewModel.updateSortOption(BookSortOption.entries[position])
-            }
+            override fun onItemSelected(
+                parent: AdapterView<*>?, view: View?, position: Int, id: Long
+            ) { viewModel.updateSortOption(BookSortOption.entries[position]) }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
 
@@ -140,9 +140,7 @@ class CatalogFragment : Fragment() {
             }
         }
 
-        swipeRefresh.setOnRefreshListener {
-            viewModel.refresh()
-        }
+        swipeRefresh.setOnRefreshListener { viewModel.refresh() }
 
         viewModel.books.observe(viewLifecycleOwner) { books ->
             bookAdapter.submitList(books)

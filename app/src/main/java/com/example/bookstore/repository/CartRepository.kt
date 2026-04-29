@@ -1,23 +1,31 @@
 package com.example.bookstore.repository
 
-import android.content.Context
-import com.example.bookstore.database.AppDatabase
-import com.example.bookstore.database.CartEntity
 import com.example.bookstore.model.Book
 
-class CartRepository(context: Context) {
+// Cart stays local — stored in memory, no Room, no Firestore
+// Simple in-memory cart that survives the session
+object CartRepository {
 
-    private val cartDao = AppDatabase.getInstance(context).cartDao()
+    data class CartItem(
+        val bookId: String,
+        val title: String,
+        val author: String,
+        val unitPrice: Double,
+        var quantity: Int,
+        val coverUrl: String
+    )
 
-    suspend fun getCartItems(): List<CartEntity> = cartDao.getAllItems()
+    private val items = mutableListOf<CartItem>()
 
-    suspend fun addToCart(book: Book, quantity: Int = 1) {
-        val existing = cartDao.getItem(book.bookId)
+    fun getCartItems(): List<CartItem> = items.toList()
+
+    fun addToCart(book: Book, quantity: Int = 1) {
+        val existing = items.find { it.bookId == book.bookId }
         if (existing != null) {
-            cartDao.updateItem(existing.copy(quantity = existing.quantity + quantity))
+            existing.quantity += quantity
         } else {
-            cartDao.insertItem(
-                CartEntity(
+            items.add(
+                CartItem(
                     bookId    = book.bookId,
                     title     = book.title,
                     author    = book.author,
@@ -29,17 +37,16 @@ class CartRepository(context: Context) {
         }
     }
 
-    suspend fun updateQuantity(item: CartEntity, quantity: Int) {
-        if (quantity <= 0) cartDao.deleteItem(item)
-        else cartDao.updateItem(item.copy(quantity = quantity))
+    fun updateQuantity(bookId: String, quantity: Int) {
+        if (quantity <= 0) items.removeAll { it.bookId == bookId }
+        else items.find { it.bookId == bookId }?.quantity = quantity
     }
 
-    suspend fun removeItem(item: CartEntity) = cartDao.deleteItem(item)
+    fun removeItem(bookId: String) = items.removeAll { it.bookId == bookId }
 
-    suspend fun clearCart() = cartDao.clearCart()
+    fun clearCart() = items.clear()
 
-    suspend fun getCartCount(): Int = cartDao.getCartCount()
+    fun getCartCount(): Int = items.sumOf { it.quantity }
 
-    fun calculateTotal(items: List<CartEntity>): Double =
-        items.sumOf { it.unitPrice * it.quantity }
+    fun calculateTotal(): Double = items.sumOf { it.unitPrice * it.quantity }
 }

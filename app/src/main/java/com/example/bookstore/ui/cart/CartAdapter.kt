@@ -11,13 +11,13 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.bookstore.R
-import com.example.bookstore.database.CartEntity
+import com.example.bookstore.repository.CartRepository
 
 class CartAdapter(
-    private val onPlus:   (CartEntity) -> Unit,
-    private val onMinus:  (CartEntity) -> Unit,
-    private val onRemove: (CartEntity) -> Unit
-) : ListAdapter<CartEntity, CartAdapter.ViewHolder>(DiffCallback) {
+    private val onPlus:   (CartRepository.CartItem) -> Unit,
+    private val onMinus:  (CartRepository.CartItem) -> Unit,
+    private val onRemove: (CartRepository.CartItem) -> Unit
+) : ListAdapter<CartRepository.CartItem, CartAdapter.ViewHolder>(DiffCallback) {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val ivCover:    ImageView = view.findViewById(R.id.ivCover)
@@ -53,8 +53,10 @@ class CartAdapter(
         }
     }
 
-    companion object DiffCallback : DiffUtil.ItemCallback<CartEntity>() {
-        override fun areItemsTheSame(a: CartEntity, b: CartEntity) = a.bookId == b.bookId
-        override fun areContentsTheSame(a: CartEntity, b: CartEntity) = a == b
+    companion object DiffCallback : DiffUtil.ItemCallback<CartRepository.CartItem>() {
+        override fun areItemsTheSame(a: CartRepository.CartItem, b: CartRepository.CartItem) =
+            a.bookId == b.bookId
+        override fun areContentsTheSame(a: CartRepository.CartItem, b: CartRepository.CartItem) =
+            a == b
     }
 }

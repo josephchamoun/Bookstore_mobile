@@ -1,8 +1,8 @@
 package com.example.bookstore.model
 
-import com.google.gson.annotations.SerializedName
-
 data class User(
-    @SerializedName("user_id") val userId: Int,
-    @SerializedName("name")    val name: String
+    val userId: String = "",
+    val name: String = "",
+    val email: String = "",
+    val address: String = ""
 )

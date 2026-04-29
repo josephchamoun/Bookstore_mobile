@@ -11,10 +11,10 @@ import com.example.bookstore.R
 import com.example.bookstore.model.Category
 
 class CategoryAdapter(
-    private val onSelect: (Int?) -> Unit
+    private val onSelect: (String?) -> Unit  // ← CHANGED: Int? → String?
 ) : ListAdapter<Category, CategoryAdapter.ViewHolder>(DiffCallback) {
 
-    private var selectedId: Int? = null
+    private var selectedId: String? = null  // ← CHANGED: Int? → String?
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvCategoryName)

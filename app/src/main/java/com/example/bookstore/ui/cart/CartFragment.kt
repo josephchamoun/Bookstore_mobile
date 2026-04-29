@@ -37,10 +37,11 @@ class CartFragment : Fragment() {
         val btnPlaceOrder = view.findViewById<Button>(R.id.btnPlaceOrder)
         val btnClearCart  = view.findViewById<ImageButton>(R.id.btnClearCart)
 
+        // ← CHANGED: callbacks now pass bookId (String) instead of CartEntity
         adapter = CartAdapter(
-            onPlus   = { item -> cartViewModel.updateQuantity(item, item.quantity + 1) },
-            onMinus  = { item -> cartViewModel.updateQuantity(item, item.quantity - 1) },
-            onRemove = { item -> cartViewModel.removeItem(item) }
+            onPlus   = { item -> cartViewModel.updateQuantity(item.bookId, item.quantity + 1) },
+            onMinus  = { item -> cartViewModel.updateQuantity(item.bookId, item.quantity - 1) },
+            onRemove = { item -> cartViewModel.removeItem(item.bookId) }
         )
         rvCart.layoutManager = LinearLayoutManager(requireContext())
         rvCart.adapter       = adapter
@@ -54,19 +55,13 @@ class CartFragment : Fragment() {
             tvTotal.text = "$${"%.2f".format(total)}"
         }
 
+        // ← CHANGED: removed SavedOffline state — Firestore handles offline automatically
         cartViewModel.orderState.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is OrderState.Success -> {
                     Toast.makeText(
                         requireContext(),
                         "Order placed successfully!",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                is OrderState.SavedOffline -> {
-                    Toast.makeText(
-                        requireContext(),
-                        "You're offline — order saved and will sync when connected",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -101,7 +96,7 @@ class CartFragment : Fragment() {
         val input = EditText(requireContext()).apply {
             hint = "Enter shipping address"
             setPadding(40, 20, 40, 20)
-            setText(cartViewModel.getSavedAddress())
+            // ← CHANGED: removed getSavedAddress() — no longer in CartViewModel
         }
         AlertDialog.Builder(requireContext())
             .setTitle("Shipping Address")
