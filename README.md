@@ -31,9 +31,7 @@ Local SQLite is updated with only the new/modified data
 This saves bandwidth and makes syncs fast even on slow connections.
 
 ### Background Sync Worker
-A background worker runs at scheduled intervals — even when the app is closed. This solves the problem of a user who hasn't opened the app in 30 days:
-- Without the worker: user opens the app, sees 30-day-old data, waits for a full sync
-- With the worker: data was quietly kept up to date in the background, app opens instantly with fresh data
+A background worker runs at scheduled intervals — even when the app is closed.
 
 ---
 
